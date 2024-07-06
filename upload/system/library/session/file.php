@@ -1,65 +1,87 @@
 <?php
-namespace Session;
-class File extends \SessionHandler {
-    public function create_sid() {
-        return parent::create_sid();
-    }
+namespace Opencart\System\Library\Session;
+/**
+ * Class File
+ *
+ * @package Opencart\System\Library\Session
+ */
+class File {
+	/**
+	 * @var object
+	 */
+	private object $config;
 
-    public function open($path, $name) {
-        return true;
-    }
-
-    public function close() {
-        return true;
-    }
-	
-    public function read($session_id) {
-		$file = session_save_path() . '/sess_' . $session_id;
-		
-		if (is_file($file)) {
-			$handle = fopen($file, 'r');
-			
-			flock($handle, LOCK_SH);
-			
-			$data = fread($handle, filesize($file));
-			
-			flock($handle, LOCK_UN);
-			
-			fclose($handle);
-			
-			return $data;
-		}
-		
-		return null;
+	/**
+	 * Constructor
+	 *
+	 * @param \Opencart\System\Engine\Registry $registry
+	 */
+	public function __construct(\Opencart\System\Engine\Registry $registry) {
+		$this->config = $registry->get('config');
 	}
 
-    public function write($session_id, $data) {
-		$file = session_save_path() . '/sess_' . $session_id;
-		
-		$handle = fopen($file, 'w');
-		
-		flock($handle, LOCK_EX);
+	/**
+	 * Read
+	 *
+	 * @param string $session_id
+	 *
+	 * @return array<mixed>
+	 */
+	public function read(string $session_id): array {
+		$file = DIR_SESSION . 'sess_' . basename($session_id);
 
-		fwrite($handle, $data);
-
-		fflush($handle);
-
-		flock($handle, LOCK_UN);
-		
-		fclose($handle);
-		
-		return true;
-    }
-
-    public function destroy($session_id) {
-		$file = session_save_path() . '/sess_' . $session_id;
-		
 		if (is_file($file)) {
-			unset($file);
+			return json_decode(file_get_contents($file), true);
+		} else {
+			return [];
 		}
-    }
+	}
 
-    public function gc($maxlifetime) {
-        return parent::gc($maxlifetime);
-    }	
+	/**
+	 * Write
+	 *
+	 * @param string       $session_id
+	 * @param array<mixed> $data
+	 *
+	 * @return bool
+	 */
+	public function write(string $session_id, array $data): bool {
+		file_put_contents(DIR_SESSION . 'sess_' . basename($session_id), json_encode($data));
+
+		return true;
+	}
+
+	/**
+	 * Destroy
+	 *
+	 * @param string $session_id
+	 *
+	 * @return void
+	 */
+	public function destroy(string $session_id): void {
+		$file = DIR_SESSION . 'sess_' . basename($session_id);
+
+		if (is_file($file)) {
+			unlink($file);
+		}
+	}
+
+	/**
+	 * GC
+	 *
+	 * @return void
+	 */
+	public function gc(): void {
+		if (round(mt_rand(1, $this->config->get('session_divisor') / $this->config->get('session_probability'))) == 1) {
+			$expire = time() - $this->config->get('session_expire');
+
+			$files = glob(DIR_SESSION . 'sess_*');
+
+			foreach ($files as $file) {
+				if (is_file($file) && filemtime($file) < $expire) {
+					unlink($file);
+				}
+			}
+		}
+	}
 }

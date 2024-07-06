@@ -1,25 +1,55 @@
 <?php
-namespace Cart;
+namespace Opencart\System\Library\Cart;
+/**
+ * Class Weight
+ *
+ * @package Opencart\System\Library\Cart
+ */
 class Weight {
-	private $weights = array();
+	/**
+	 * @var object
+	 */
+	private object $db;
+	/**
+	 * @var object
+	 */
+	private object $config;
+	/**
+	 * @var array<int, array<string, mixed>>
+	 */
+	private array $weights = [];
 
-	public function __construct($registry) {
+	/**
+	 * Constructor
+	 *
+	 * @param \Opencart\System\Engine\Registry $registry
+	 */
+	public function __construct(\Opencart\System\Engine\Registry $registry) {
 		$this->db = $registry->get('db');
 		$this->config = $registry->get('config');
 
-		$weight_class_query = $this->db->query("SELECT * FROM " . DB_PREFIX . "weight_class wc LEFT JOIN " . DB_PREFIX . "weight_class_description wcd ON (wc.weight_class_id = wcd.weight_class_id) WHERE wcd.language_id = '" . (int)$this->config->get('config_language_id') . "'");
+		$weight_class_query = $this->db->query("SELECT * FROM `" . DB_PREFIX . "weight_class` `wc` LEFT JOIN `" . DB_PREFIX . "weight_class_description` `wcd` ON (`wc`.`weight_class_id` = `wcd`.`weight_class_id`) WHERE `wcd`.`language_id` = '" . (int)$this->config->get('config_language_id') . "'");
 
 		foreach ($weight_class_query->rows as $result) {
-			$this->weights[$result['weight_class_id']] = array(
+			$this->weights[$result['weight_class_id']] = [
 				'weight_class_id' => $result['weight_class_id'],
 				'title'           => $result['title'],
 				'unit'            => $result['unit'],
 				'value'           => $result['value']
-			);
+			];
 		}
 	}
 
-	public function convert($value, $from, $to) {
+	/**
+	 * Convert
+	 *
+	 * @param float $value
+	 * @param int   $from
+	 * @param int   $to
+	 *
+	 * @return float
+	 */
+	public function convert(float $value, int $from, int $to): float {
 		if ($from == $to) {
 			return $value;
 		}
@@ -39,7 +69,17 @@ class Weight {
 		return $value * ($to / $from);
 	}
 
-	public function format($value, $weight_class_id, $decimal_point = '.', $thousand_point = ',') {
+	/**
+	 * Format
+	 *
+	 * @param float  $value
+	 * @param int    $weight_class_id
+	 * @param string $decimal_point
+	 * @param string $thousand_point
+	 *
+	 * @return string
+	 */
+	public function format(float $value, int $weight_class_id, string $decimal_point = '.', string $thousand_point = ','): string {
 		if (isset($this->weights[$weight_class_id])) {
 			return number_format($value, 2, $decimal_point, $thousand_point) . $this->weights[$weight_class_id]['unit'];
 		} else {
@@ -47,7 +87,14 @@ class Weight {
 		}
 	}
 
-	public function getUnit($weight_class_id) {
+	/**
+	 * getUnit
+	 *
+	 * @param int $weight_class_id
+	 *
+	 * @return string
+	 */
+	public function getUnit(int $weight_class_id): string {
 		if (isset($this->weights[$weight_class_id])) {
 			return $this->weights[$weight_class_id]['unit'];
 		} else {

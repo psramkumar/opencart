@@ -1,24 +1,77 @@
 <?php
-namespace Cart;
+namespace Opencart\System\Library\Cart;
+/**
+ * Class Customer
+ *
+ * @package Opencart\System\Library\Cart
+ */
 class Customer {
-	private $customer_id;
-	private $firstname;
-	private $lastname;
-	private $customer_group_id;
-	private $email;
-	private $telephone;
-	private $fax;
-	private $newsletter;
-	private $address_id;
+	/**
+	 * @var object
+	 */
+	private object $db;
+	/**
+	 * @var object
+	 */
+	private object $config;
+	/**
+	 * @var object
+	 */
+	private object $request; // Do not add namespace as it stops devs being able to extend classes
+	/**
+	 * @var object
+	 */
+	private object $session;
+	/**
+	 * @var int
+	 */
+	private int $customer_id = 0;
+	/**
+	 * @var string
+	 */
+	private string $firstname = '';
+	/**
+	 * @var string
+	 */
+	private string $lastname = '';
+	/**
+	 * @var int
+	 */
+	private int $customer_group_id = 0;
+	/**
+	 * @var string
+	 */
+	private string $email = '';
+	/**
+	 * @var string
+	 */
+	private string $telephone = '';
+	/**
+	 * @var bool
+	 */
+	private bool $newsletter = false;
+	/**
+	 * @var bool
+	 */
+	private bool $safe = false;
+	/**
+	 * @var bool
+	 */
+	private bool $commenter = false;
 
-	public function __construct($registry) {
-		$this->config = $registry->get('config');
+	/**
+	 * Constructor
+	 *
+	 * @param \Opencart\System\Engine\Registry $registry
+	 */
+	public function __construct(\Opencart\System\Engine\Registry $registry) {
 		$this->db = $registry->get('db');
+		$this->config = $registry->get('config');
 		$this->request = $registry->get('request');
 		$this->session = $registry->get('session');
 
 		if (isset($this->session->data['customer_id'])) {
-			$customer_query = $this->db->query("SELECT * FROM " . DB_PREFIX . "customer WHERE customer_id = '" . (int)$this->session->data['customer_id'] . "' AND status = '1'");
+			$customer_query = $this->db->query("SELECT * FROM `" . DB_PREFIX . "customer` WHERE `customer_id` = '" . (int)$this->session->data['customer_id'] . "' AND `status` = '1'");
 
 			if ($customer_query->num_rows) {
 				$this->customer_id = $customer_query->row['customer_id'];
@@ -27,31 +80,46 @@ class Customer {
 				$this->customer_group_id = $customer_query->row['customer_group_id'];
 				$this->email = $customer_query->row['email'];
 				$this->telephone = $customer_query->row['telephone'];
-				$this->fax = $customer_query->row['fax'];
 				$this->newsletter = $customer_query->row['newsletter'];
-				$this->address_id = $customer_query->row['address_id'];
+				$this->safe = (bool)$customer_query->row['safe'];
+				$this->commenter = (bool)$customer_query->row['commenter'];
 
-				$this->db->query("UPDATE " . DB_PREFIX . "customer SET language_id = '" . (int)$this->config->get('config_language_id') . "', ip = '" . $this->db->escape($this->request->server['REMOTE_ADDR']) . "' WHERE customer_id = '" . (int)$this->customer_id . "'");
-
-				$query = $this->db->query("SELECT * FROM " . DB_PREFIX . "customer_ip WHERE customer_id = '" . (int)$this->session->data['customer_id'] . "' AND ip = '" . $this->db->escape($this->request->server['REMOTE_ADDR']) . "'");
-
-				if (!$query->num_rows) {
-					$this->db->query("INSERT INTO " . DB_PREFIX . "customer_ip SET customer_id = '" . (int)$this->session->data['customer_id'] . "', ip = '" . $this->db->escape($this->request->server['REMOTE_ADDR']) . "', date_added = NOW()");
-				}
+				$this->db->query("UPDATE `" . DB_PREFIX . "customer` SET `language_id` = '" . (int)$this->config->get('config_language_id') . "', `ip` = '" . $this->db->escape(oc_get_ip()) . "' WHERE `customer_id` = '" . (int)$this->customer_id . "'");
 			} else {
 				$this->logout();
 			}
 		}
 	}
 
-	public function login($email, $password, $override = false) {
-		if ($override) {
-			$customer_query = $this->db->query("SELECT * FROM " . DB_PREFIX . "customer WHERE LOWER(email) = '" . $this->db->escape(utf8_strtolower($email)) . "' AND status = '1'");
-		} else {
-			$customer_query = $this->db->query("SELECT * FROM " . DB_PREFIX . "customer WHERE LOWER(email) = '" . $this->db->escape(utf8_strtolower($email)) . "' AND (password = SHA1(CONCAT(salt, SHA1(CONCAT(salt, SHA1('" . $this->db->escape($password) . "'))))) OR password = '" . $this->db->escape(md5($password)) . "') AND status = '1' AND approved = '1'");
-		}
+	/**
+	 * Login
+	 *
+	 * @param string $email
+	 * @param string $password
+	 * @param bool   $override
+	 *
+	 * @return bool
+	 */
+	public function login(string $email, string $password, bool $override = false): bool {
+		$customer_query = $this->db->query("SELECT * FROM `" . DB_PREFIX . "customer` WHERE LCASE(`email`) = '" . $this->db->escape(oc_strtolower($email)) . "' AND `status` = '1'");
 
-		if ($customer_query->num_rows) {
+		if ($customer_query->row) {
+			if (!$override) {
+				if (password_verify($password, $customer_query->row['password'])) {
+					$rehash = password_needs_rehash($customer_query->row['password'], PASSWORD_DEFAULT);
+				} elseif (isset($customer_query->row['salt']) && $customer_query->row['password'] == sha1($customer_query->row['salt'] . sha1($customer_query->row['salt'] . sha1($password)))) {
+					$rehash = true;
+				} elseif ($customer_query->row['password'] == md5($password)) {
+					$rehash = true;
+				} else {
+					return false;
+				}
+
+				if ($rehash) {
+					$this->db->query("UPDATE `" . DB_PREFIX . "customer` SET `password` = '" . $this->db->escape(password_hash($password, PASSWORD_DEFAULT)) . "' WHERE `customer_id` = '" . (int)$customer_query->row['customer_id'] . "'");
+				}
+			}
+
 			$this->session->data['customer_id'] = $customer_query->row['customer_id'];
 
 			$this->customer_id = $customer_query->row['customer_id'];
@@ -60,11 +128,11 @@ class Customer {
 			$this->customer_group_id = $customer_query->row['customer_group_id'];
 			$this->email = $customer_query->row['email'];
 			$this->telephone = $customer_query->row['telephone'];
-			$this->fax = $customer_query->row['fax'];
 			$this->newsletter = $customer_query->row['newsletter'];
-			$this->address_id = $customer_query->row['address_id'];
+			$this->safe = (bool)$customer_query->row['safe'];
+			$this->commenter = (bool)$customer_query->row['commenter'];
 
-			$this->db->query("UPDATE " . DB_PREFIX . "customer SET language_id = '" . (int)$this->config->get('config_language_id') . "', ip = '" . $this->db->escape($this->request->server['REMOTE_ADDR']) . "' WHERE customer_id = '" . (int)$this->customer_id . "'");
+			$this->db->query("UPDATE `" . DB_PREFIX . "customer` SET `language_id` = '" . (int)$this->config->get('config_language_id') . "', `ip` = '" . $this->db->escape(oc_get_ip()) . "' WHERE `customer_id` = '" . (int)$this->customer_id . "'");
 
 			return true;
 		} else {
@@ -72,69 +140,149 @@ class Customer {
 		}
 	}
 
-	public function logout() {
+	/**
+	 * Logout
+	 *
+	 * @return void
+	 */
+	public function logout(): void {
 		unset($this->session->data['customer_id']);
 
-		$this->customer_id = '';
+		$this->customer_id = 0;
 		$this->firstname = '';
 		$this->lastname = '';
-		$this->customer_group_id = '';
+		$this->customer_group_id = 0;
 		$this->email = '';
 		$this->telephone = '';
-		$this->fax = '';
-		$this->newsletter = '';
-		$this->address_id = '';
+		$this->newsletter = false;
+		$this->safe = false;
+		$this->commenter = false;
 	}
 
-	public function isLogged() {
+	/**
+	 * isLogged
+	 *
+	 * @return bool
+	 */
+	public function isLogged(): bool {
+		return $this->customer_id ? true : false;
+	}
+
+	/**
+	 * getId
+	 *
+	 * @return int
+	 */
+	public function getId(): int {
 		return $this->customer_id;
 	}
 
-	public function getId() {
-		return $this->customer_id;
-	}
-
-	public function getFirstName() {
+	/**
+	 * getFirstName
+	 *
+	 * @return string
+	 */
+	public function getFirstName(): string {
 		return $this->firstname;
 	}
 
-	public function getLastName() {
+	/**
+	 * getLastName
+	 *
+	 * @return string
+	 */
+	public function getLastName(): string {
 		return $this->lastname;
 	}
 
-	public function getGroupId() {
+	/**
+	 * getGroupId
+	 *
+	 * @return int
+	 */
+	public function getGroupId(): int {
 		return $this->customer_group_id;
 	}
 
-	public function getEmail() {
+	/**
+	 * getEmail
+	 *
+	 * @return string
+	 */
+	public function getEmail(): string {
 		return $this->email;
 	}
 
-	public function getTelephone() {
+	/**
+	 * getTelephone
+	 *
+	 * @return string
+	 */
+	public function getTelephone(): string {
 		return $this->telephone;
 	}
 
-	public function getFax() {
-		return $this->fax;
-	}
-
-	public function getNewsletter() {
+	/**
+	 * getNewsletter
+	 *
+	 * @return bool
+	 */
+	public function getNewsletter(): bool {
 		return $this->newsletter;
 	}
 
-	public function getAddressId() {
-		return $this->address_id;
+	/**
+	 * isSafe
+	 *
+	 * @return bool
+	 */
+	public function isSafe(): bool {
+		return $this->safe;
 	}
 
-	public function getBalance() {
-		$query = $this->db->query("SELECT SUM(amount) AS total FROM " . DB_PREFIX . "customer_transaction WHERE customer_id = '" . (int)$this->customer_id . "'");
-
-		return $query->row['total'];
+	/**
+	 * isCommenter
+	 *
+	 * @return bool
+	 */
+	public function isCommenter(): bool {
+		return $this->commenter;
 	}
 
-	public function getRewardPoints() {
-		$query = $this->db->query("SELECT SUM(points) AS total FROM " . DB_PREFIX . "customer_reward WHERE customer_id = '" . (int)$this->customer_id . "'");
+	/**
+	 * getAddressId
+	 *
+	 * @return int
+	 */
+	public function getAddressId(): int {
+		$query = $this->db->query("SELECT * FROM `" . DB_PREFIX . "address` WHERE `customer_id` = '" . (int)$this->customer_id . "' AND `default` = '1'");
 
-		return $query->row['total'];
+		if ($query->num_rows) {
+			return (int)$query->row['address_id'];
+		} else {
+			return 0;
+		}
+	}
+
+	/**
+	 * Get Balance
+	 *
+	 * @return float
+	 */
+	public function getBalance(): float {
+		$query = $this->db->query("SELECT SUM(`amount`) AS `total` FROM `" . DB_PREFIX . "customer_transaction` WHERE `customer_id` = '" . (int)$this->customer_id . "'");
+
+		return (float)$query->row['total'];
+	}
+
+	/**
+	 * Get Reward Points
+	 *
+	 * @return float
+	 */
+	public function getRewardPoints(): float {
+		$query = $this->db->query("SELECT SUM(`points`) AS `total` FROM `" . DB_PREFIX . "customer_reward` WHERE `customer_id` = '" . (int)$this->customer_id . "'");
+
+		return (float)$query->row['total'];
 	}
 }

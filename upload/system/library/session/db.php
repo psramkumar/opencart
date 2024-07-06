@@ -5,58 +5,90 @@ CREATE TABLE IF NOT EXISTS `session` (
   `data` text NOT NULL,
   `expire` datetime NOT NULL,
   PRIMARY KEY (`session_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 */
-namespace Session;
-final class DB {
-	public $data = array();
-	public $expire = array();
-	
-	public function __construct($registry) {
+namespace Opencart\System\Library\Session;
+/**
+ * Class DB
+ *
+ * @package Opencart\System\Library\Session
+ */
+class DB {
+	/**
+	 * @var object
+	 */
+	private object $db;
+	/**
+	 * @var object
+	 */
+	private object $config;
+
+	/**
+	 * Constructor
+	 *
+	 * @param \Opencart\System\Engine\Registry $registry
+	 */
+	public function __construct(\Opencart\System\Engine\Registry $registry) {
 		$this->db = $registry->get('db');
-		
-		register_shutdown_function('session_write_close');
-		
-		$this->expire = ini_get('session.gc_maxlifetime');
+		$this->config = $registry->get('config');
 	}
-	
-	public function open() {
-		if ($this->db){
-			return true;
-		} else {
-			return false;
-		}
-	}
-	
-	public function close() {
-		return true;
-	}
-	
-	public function read($session_id) {
-		$query = $this->db->query("SELECT `data` FROM `" . DB_PREFIX . "session` WHERE session_id = '" . $this->db->escape($session_id) . "' AND expire > " . (int)time());
-		
+
+	/**
+	 * Read
+	 *
+	 * @param string $session_id
+	 *
+	 * @return array<mixed>
+	 */
+	public function read(string $session_id): array {
+		$query = $this->db->query("SELECT `data` FROM `" . DB_PREFIX . "session` WHERE `session_id` = '" . $this->db->escape($session_id) . "' AND `expire` > '" . $this->db->escape(gmdate('Y-m-d H:i:s')) . "'");
+
 		if ($query->num_rows) {
-			return $query->row['data'];
+			return (array)json_decode($query->row['data'], true);
 		} else {
-			return false;
+			return [];
 		}
 	}
-	
-	public function write($session_id, $data) {
-		$this->db->query("REPLACE INTO SET `data` = '" . $this->db->escape($data) . "', expire = '" . $this->db->escape(date('Y-m-d H:i:s', time() + $this->expire)) . "' FROM `" . DB_PREFIX . "session` WHERE session_id = '" . $this->db->escape($session_id) . "' AND expire > " . (int)time());
-		
+
+	/**
+	 * Write
+	 *
+	 * @param string       $session_id
+	 * @param array<mixed> $data
+	 *
+	 * @return bool
+	 */
+	public function write(string $session_id, array $data): bool {
+		if ($session_id) {
+			$this->db->query("REPLACE INTO `" . DB_PREFIX . "session` SET `session_id` = '" . $this->db->escape($session_id) . "', `data` = '" . $this->db->escape($data ? json_encode($data) : '') . "', `expire` = '" . $this->db->escape(gmdate('Y-m-d H:i:s', time() + $this->config->get('session_expire'))) . "'");
+		}
+
 		return true;
 	}
-	
-	public function destroy($session_id) {
-		$this->db->query("DELETE FROM `" . DB_PREFIX . "session` WHERE session_id = '" . $this->db->escape($session_id) . "'");
-		
+
+	/**
+	 * Destroy
+	 *
+	 * @param string $session_id
+	 *
+	 * @return bool
+	 */
+	public function destroy(string $session_id): bool {
+		$this->db->query("DELETE FROM `" . DB_PREFIX . "session` WHERE `session_id` = '" . $this->db->escape($session_id) . "'");
+
 		return true;
 	}
-	
-	public function gc($expire) {
-		$this->db->query("DELETE FROM `" . DB_PREFIX . "session` WHERE expire < " . ((int)time() + $expire));
-		
+
+	/**
+	 * GC
+	 *
+	 * @return bool
+	 */
+	public function gc(): bool {
+		if (round(mt_rand(1, $this->config->get('session_divisor') / $this->config->get('session_probability'))) == 1) {
+			$this->db->query("DELETE FROM `" . DB_PREFIX . "session` WHERE `expire` < '" . $this->db->escape(gmdate('Y-m-d H:i:s', time())) . "'");
+		}
+
 		return true;
 	}
 }

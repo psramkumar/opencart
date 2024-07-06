@@ -1,88 +1,87 @@
 <?php
-class ControllerAccountReward extends Controller {
-	public function index() {
-		if (!$this->customer->isLogged()) {
-			$this->session->data['redirect'] = $this->url->link('account/reward', '', true);
-
-			$this->response->redirect($this->url->link('account/login', '', true));
-		}
-
+namespace Opencart\Catalog\Controller\Account;
+/**
+ * Class Reward
+ *
+ * @package Opencart\Catalog\Controller\Account
+ */
+class Reward extends \Opencart\System\Engine\Controller {
+	/**
+	 * @return void
+	 */
+	public function index(): void {
 		$this->load->language('account/reward');
 
-		$this->document->setTitle($this->language->get('heading_title'));
-
-		$data['breadcrumbs'] = array();
-
-		$data['breadcrumbs'][] = array(
-			'text' => $this->language->get('text_home'),
-			'href' => $this->url->link('common/home')
-		);
-
-		$data['breadcrumbs'][] = array(
-			'text' => $this->language->get('text_account'),
-			'href' => $this->url->link('account/account', '', true)
-		);
-
-		$data['breadcrumbs'][] = array(
-			'text' => $this->language->get('text_reward'),
-			'href' => $this->url->link('account/reward', '', true)
-		);
-
-		$this->load->model('account/reward');
-
-		$data['heading_title'] = $this->language->get('heading_title');
-
-		$data['column_date_added'] = $this->language->get('column_date_added');
-		$data['column_description'] = $this->language->get('column_description');
-		$data['column_points'] = $this->language->get('column_points');
-
-		$data['text_total'] = $this->language->get('text_total');
-		$data['text_empty'] = $this->language->get('text_empty');
-
-		$data['button_continue'] = $this->language->get('button_continue');
-
 		if (isset($this->request->get['page'])) {
-			$page = $this->request->get['page'];
+			$page = (int)$this->request->get['page'];
 		} else {
 			$page = 1;
 		}
 
-		$data['rewards'] = array();
+		if (!$this->customer->isLogged() || (!isset($this->request->get['customer_token']) || !isset($this->session->data['customer_token']) || ($this->request->get['customer_token'] != $this->session->data['customer_token']))) {
+			$this->session->data['redirect'] = $this->url->link('account/reward', 'language=' . $this->config->get('config_language'));
 
-		$filter_data = array(
+			$this->response->redirect($this->url->link('account/login', 'language=' . $this->config->get('config_language'), true));
+		}
+
+		$this->document->setTitle($this->language->get('heading_title'));
+
+		$data['breadcrumbs'] = [];
+
+		$data['breadcrumbs'][] = [
+			'text' => $this->language->get('text_home'),
+			'href' => $this->url->link('common/home', 'language=' . $this->config->get('config_language'))
+		];
+
+		$data['breadcrumbs'][] = [
+			'text' => $this->language->get('text_account'),
+			'href' => $this->url->link('account/account', 'language=' . $this->config->get('config_language') . '&customer_token=' . $this->session->data['customer_token'])
+		];
+
+		$data['breadcrumbs'][] = [
+			'text' => $this->language->get('text_reward'),
+			'href' => $this->url->link('account/reward', 'language=' . $this->config->get('config_language') . '&customer_token=' . $this->session->data['customer_token'])
+		];
+
+		$limit = 10;
+
+		$data['rewards'] = [];
+
+		$filter_data = [
 			'sort'  => 'date_added',
 			'order' => 'DESC',
-			'start' => ($page - 1) * 10,
-			'limit' => 10
-		);
+			'start' => ($page - 1) * $limit,
+			'limit' => $limit
+		];
 
-		$reward_total = $this->model_account_reward->getTotalRewards();
+		$this->load->model('account/reward');
 
-		$results = $this->model_account_reward->getRewards($filter_data);
+		$results = $this->model_account_reward->getRewards($this->customer->getId(), $filter_data);
 
 		foreach ($results as $result) {
-			$data['rewards'][] = array(
+			$data['rewards'][] = [
 				'order_id'    => $result['order_id'],
 				'points'      => $result['points'],
 				'description' => $result['description'],
 				'date_added'  => date($this->language->get('date_format_short'), strtotime($result['date_added'])),
-				'href'        => $this->url->link('account/order/info', 'order_id=' . $result['order_id'], true)
-			);
+				'href'        => $this->url->link('account/order.info', 'language=' . $this->config->get('config_language') . '&customer_token=' . $this->session->data['customer_token'] . '&order_id=' . $result['order_id'])
+			];
 		}
 
-		$pagination = new Pagination();
-		$pagination->total = $reward_total;
-		$pagination->page = $page;
-		$pagination->limit = 10;
-		$pagination->url = $this->url->link('account/reward', 'page={page}', true);
+		$reward_total = $this->model_account_reward->getTotalRewards($this->customer->getId());
 
-		$data['pagination'] = $pagination->render();
+		$data['pagination'] = $this->load->controller('common/pagination', [
+			'total' => $reward_total,
+			'page'  => $page,
+			'limit' => $limit,
+			'url'   => $this->url->link('account/reward', 'language=' . $this->config->get('config_language') . '&customer_token=' . $this->session->data['customer_token'] . '&page={page}')
+		]);
 
-		$data['results'] = sprintf($this->language->get('text_pagination'), ($reward_total) ? (($page - 1) * 10) + 1 : 0, ((($page - 1) * 10) > ($reward_total - 10)) ? $reward_total : ((($page - 1) * 10) + 10), $reward_total, ceil($reward_total / 10));
+		$data['results'] = sprintf($this->language->get('text_pagination'), ($reward_total) ? (($page - 1) * $limit) + 1 : 0, ((($page - 1) * $limit) > ($reward_total - $limit)) ? $reward_total : ((($page - 1) * $limit) + $limit), $reward_total, ceil($reward_total / $limit));
 
 		$data['total'] = (int)$this->customer->getRewardPoints();
 
-		$data['continue'] = $this->url->link('account/account', '', true);
+		$data['continue'] = $this->url->link('account/account', 'language=' . $this->config->get('config_language') . '&customer_token=' . $this->session->data['customer_token']);
 
 		$data['column_left'] = $this->load->controller('common/column_left');
 		$data['column_right'] = $this->load->controller('common/column_right');

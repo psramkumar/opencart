@@ -1,56 +1,96 @@
 <?php
+/**
+ * @package     OpenCart
+ *
+ * @author      Daniel Kerr
+ * @copyright   Copyright (c) 2005 - 2017, OpenCart, Ltd. (https://www.opencart.com/)
+ * @license     https://opensource.org/licenses/GPL-3.0
+ *
+ * @see        https://www.opencart.com
+ */
+namespace Opencart\System\Engine;
+/**
+ * Class Action
+ *
+ * @package Opencart\System\Engine
+ */
 class Action {
-	private $id;
-	private $route;
-	private $method = 'index';
+	/**
+	 * @var string
+	 */
+	private string $route;
 
-	public function __construct($route) {
-		$this->id = $route;
-		
-		$parts = explode('/', preg_replace('/[^a-zA-Z0-9_\/]/', '', (string)$route));
+	/**
+	 * @var string
+	 */
+	private string $method;
 
-		// Break apart the route
-		while ($parts) {
-			$file = DIR_APPLICATION . 'controller/' . implode('/', $parts) . '.php';
+	/**
+	 * Constructor
+	 *
+	 * @param string $route
+	 */
+	public function __construct(string $route) {
+		$route = preg_replace('/[^a-zA-Z0-9_|\/\.]/', '', $route);
 
-			if (is_file($file)) {
-				$this->route = implode('/', $parts);		
-				
-				break;
-			} else {
-				$this->method = array_pop($parts);
-			}
+		$pos = strrpos($route, '.');
+
+		if ($pos !== false) {
+			$this->route = substr($route, 0, $pos);
+			$this->method = substr($route, $pos + 1);
+		} else {
+			$this->route = $route;
+			$this->method = 'index';
 		}
 	}
-	
-	public function getId() {
-		return $this->id;
+
+	/**
+	 * Get Id
+	 *
+	 * @return string
+	 */
+	public function getId(): string {
+		return $this->route;
 	}
-	
-	public function execute($registry, array $args = array()) {
+
+	/**
+	 * Execute
+	 *
+	 * @param \Opencart\System\Engine\Registry $registry
+	 * @param array<mixed>                     $args
+	 *
+	 * @return mixed
+	 */
+	public function execute(\Opencart\System\Engine\Registry $registry, array &$args = []) {
 		// Stop any magical methods being called
 		if (substr($this->method, 0, 2) == '__') {
 			return new \Exception('Error: Calls to magic methods are not allowed!');
 		}
 
-		$file = DIR_APPLICATION . 'controller/' . $this->route . '.php';		
-		$class = 'Controller' . preg_replace('/[^a-zA-Z0-9]/', '', $this->route);
-		
-		// Initialize the class
-		if (is_file($file)) {
-			include_once($file);
-		
-			$controller = new $class($registry);
+		// Create a key to store the controller object
+		$key = 'controller_' . str_replace('/', '_', $this->route);
+
+		if (!$registry->has($key)) {
+			// Initialize the class
+			$controller = $registry->get('factory')->controller($this->route);
+
+			// Store object
+			$registry->set($key, $controller);
 		} else {
-			return new \Exception('Error: Could not call ' . $this->route . '/' . $this->method . '!');
+			$controller = $registry->get($key);
 		}
-		
-		$reflection = new ReflectionClass($class);
-		
-		if ($reflection->hasMethod($this->method) && $reflection->getMethod($this->method)->getNumberOfRequiredParameters() <= count($args)) {
-			return call_user_func_array(array($controller, $this->method), $args);
+
+		// If action cannot be executed, we return an action error object.
+		if ($controller instanceof \Exception) {
+			return new \Exception('Error: Could not call route ' . $this->route . '!');
+		}
+
+		$callable = [$controller, $this->method];
+
+		if (is_callable($callable)) {
+			return $callable(...$args);
 		} else {
-			return new \Exception('Error: Could not call ' . $this->route . '/' . $this->method . '!');
+			return new \Exception('Error: Could not call route ' . $this->route . '!');
 		}
 	}
 }
