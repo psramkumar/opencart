@@ -3,6 +3,8 @@ namespace Opencart\Admin\Controller\Marketplace;
 /**
  * Class Promotion
  *
+ * Can be loaded using $this->load->controller('marketplace/promotion');
+ *
  * @package Opencart\Admin\Controller\Marketplace
  */
 class Promotion extends \Opencart\System\Engine\Controller {
@@ -37,7 +39,6 @@ class Promotion extends \Opencart\System\Engine\Controller {
 			curl_setopt($curl, CURLOPT_URL, OPENCART_SERVER . 'index.php?route=api/recommended&type=' . $type . '&version=' . VERSION);
 			curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
 			curl_setopt($curl, CURLOPT_HEADER, false);
-			curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
 			curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 30);
 			curl_setopt($curl, CURLOPT_TIMEOUT, 30);
 
@@ -65,6 +66,7 @@ class Promotion extends \Opencart\System\Engine\Controller {
 		$data['extensions'] = [];
 
 		if (isset($promotion['extensions'])) {
+			// Extension
 			$this->load->model('setting/extension');
 
 			foreach ($promotion['extensions'] as $result) {

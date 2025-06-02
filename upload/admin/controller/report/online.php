@@ -69,7 +69,7 @@ class Online extends \Opencart\System\Engine\Controller {
 	 *
 	 * @return string
 	 */
-	protected function getList(): string {
+	public function getList(): string {
 		if (isset($this->request->get['filter_customer'])) {
 			$filter_customer = $this->request->get['filter_customer'];
 		} else {
@@ -88,6 +88,7 @@ class Online extends \Opencart\System\Engine\Controller {
 			$page = 1;
 		}
 
+		// Customer
 		$data['customers'] = [];
 
 		$filter_data = [
@@ -97,7 +98,9 @@ class Online extends \Opencart\System\Engine\Controller {
 			'limit'           => $this->config->get('config_pagination_admin')
 		];
 
+		// Online
 		$this->load->model('report/online');
+
 		$this->load->model('customer/customer');
 
 		$results = $this->model_report_online->getOnline($filter_data);
@@ -112,14 +115,10 @@ class Online extends \Opencart\System\Engine\Controller {
 			}
 
 			$data['customers'][] = [
-				'customer_id' => $result['customer_id'],
-				'ip'          => $result['ip'],
-				'customer'    => $customer,
-				'url'         => $result['url'],
-				'referer'     => $result['referer'],
-				'date_added'  => date($this->language->get('datetime_format'), strtotime($result['date_added'])),
-				'edit'        => $this->url->link('customer/customer.form', 'user_token=' . $this->session->data['user_token'] . '&customer_id=' . $result['customer_id'])
-			];
+				'customer'   => $customer,
+				'date_added' => date($this->language->get('datetime_format'), strtotime($result['date_added'])),
+				'edit'       => $this->url->link('customer/customer.form', 'user_token=' . $this->session->data['user_token'] . '&customer_id=' . $result['customer_id'])
+			] + $result;
 		}
 
 		$url = '';
@@ -132,8 +131,10 @@ class Online extends \Opencart\System\Engine\Controller {
 			$url .= '&filter_ip=' . $this->request->get['filter_ip'];
 		}
 
+		// Total Online
 		$customer_total = $this->model_report_online->getTotalOnline($filter_data);
 
+		// Pagination
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $customer_total,
 			'page'  => $page,

@@ -7,11 +7,13 @@ namespace Opencart\Catalog\Controller\Mail;
  */
 class Subscription extends \Opencart\System\Engine\Controller {
 	/**
+	 * Index
+	 *
+	 * catalog/model/checkout/subscription.addSubscription/after
+	 *
 	 * @param string            $route
 	 * @param array<int, mixed> $args
 	 * @param array<mixed>      $output
-	 *
-	 *  Index
 	 *
 	 * @return void
 	 */
@@ -89,19 +91,16 @@ class Subscription extends \Opencart\System\Engine\Controller {
 				// since new subscriptions cannot be re-added with the same
 				// order ID; only as a new order ID added by an extension
 				if ($value['customer_id'] == $subscription['customer_id'] && $value['order_id'] == $subscription['order_id']) {
-					// Payment Methods
-					$this->load->model('sale/subscription');
+					// Subscription
+					$this->load->model('checkout/subscription');
 
-					$payment_method = $this->model_sale_subscription->getTotalSubscriptions(['filter_customer_id' => $value['customer_id']]);
+					$payment_method = $this->model_checkout_subscription->getTotalSubscriptions(['filter_customer_id' => $value['customer_id']]);
 
 					if ($payment_method) {
-						// Subscription
-						$this->load->model('checkout/subscription');
-
 						$subscription_order_product = $this->model_checkout_subscription->getSubscriptionByOrderProductId($value['order_product_id']);
 
 						if ($subscription_order_product) {
-							// Orders
+							// Order
 							$this->load->model('account/order');
 
 							// Order Products
@@ -138,17 +137,16 @@ class Subscription extends \Opencart\System\Engine\Controller {
 									}
 								}
 
-
-								// Orders
+								// Order
 								$this->load->model('checkout/order');
 
 								$order_info = $this->model_checkout_order->getOrder($value['order_id']);
 
 								if ($order_info) {
-									// Stores
+									// Setting
 									$this->load->model('setting/store');
 
-									// Settings
+									// Setting
 									$this->load->model('setting/setting');
 
 									$store_info = $this->model_setting_store->getStore($order_info['store_id']);
@@ -174,7 +172,7 @@ class Subscription extends \Opencart\System\Engine\Controller {
 										$data['order_status'] = '';
 									}
 
-									// Languages
+									// Language
 									$this->load->model('localisation/language');
 
 									$language_info = $this->model_localisation_language->getLanguage($order_info['language_id']);
@@ -199,7 +197,7 @@ class Subscription extends \Opencart\System\Engine\Controller {
 
 									$subject = sprintf($this->language->get('mail_text_subject'), $store_name, $order_info['order_id']);
 
-									// Image files
+									// Image
 									$this->load->model('tool/image');
 
 									if (is_file(DIR_IMAGE . $store_logo)) {
@@ -246,7 +244,7 @@ class Subscription extends \Opencart\System\Engine\Controller {
 
 									$data['description'] = $value['description'];
 
-									// Products
+									// Order Products
 									$data['name'] = $order_product['name'];
 									$data['quantity'] = $order_product['quantity'];
 									$data['price'] = $this->currency->format($order_product['price'], $order_info['currency_code'], $order_info['currency_value']);
@@ -263,6 +261,7 @@ class Subscription extends \Opencart\System\Engine\Controller {
 									}
 
 									if ($this->config->get('payment_' . $payment_info['code'] . '_status')) {
+										// Payment Method
 										$this->load->model('extension/payment/' . $payment_info['code']);
 
 										// Promotion
@@ -272,7 +271,7 @@ class Subscription extends \Opencart\System\Engine\Controller {
 											if ($store_info) {
 												$config_subscription_active_status_id = $this->model_setting_setting->getValue('config_subscription_active_status_id', $store_info['store_id']);
 											} else {
-												$config_subscription_active_status_id = $this->config->get('config_subscription_active_status_id');
+												$config_subscription_active_status_id = (int)$this->config->get('config_subscription_active_status_id');
 											}
 
 											if ($config_subscription_active_status_id == $subscription_status_id) {
@@ -281,6 +280,7 @@ class Subscription extends \Opencart\System\Engine\Controller {
 												// Validate the latest subscription values with the ones edited
 												// by promotional extensions
 												if ($subscription_info && $subscription_info['status'] && $subscription_info['customer_id'] == $value['customer_id'] && $subscription_info['order_id'] == $value['order_id'] && $subscription_info['order_product_id'] == $value['order_product_id']) {
+													// Customer
 													$this->load->model('account/customer');
 
 													$customer_info = $this->model_account_customer->getCustomer($subscription_info['customer_id']);
@@ -331,7 +331,7 @@ class Subscription extends \Opencart\System\Engine\Controller {
 														// until the time period has exceeded. Therefore, the current
 														// period must be matched as well
 														if (($period == 0 && ($validate_trial > 0 || !$validate_trial)) && $value['description'] == $description && $subscription_info['subscription_plan_id'] == $value['subscription_plan_id']) {
-															// Products
+															// Product
 															$this->load->model('catalog/product');
 
 															$product_subscription_info = $this->model_catalog_product->getSubscription($order_product['product_id'], $subscription_info['subscription_plan_id']);
@@ -376,10 +376,10 @@ class Subscription extends \Opencart\System\Engine\Controller {
 		*/
 	}
 
-	// catalog/model/checkout/order/addHistory/before
-
 	/**
 	 * Alert
+	 *
+	 * catalog/model/checkout/order.addHistory/before
 	 *
 	 * @param string            $route
 	 * @param array<int, mixed> $args
@@ -431,6 +431,7 @@ class Subscription extends \Opencart\System\Engine\Controller {
 				$data['order_status'] = '';
 			}
 
+			// Upload
 			$this->load->model('tool/upload');
 
 			$data['products'] = [];
@@ -455,14 +456,12 @@ class Subscription extends \Opencart\System\Engine\Controller {
 						}
 					}
 
-					$option_data[] = [
-						'name'  => $order_option['name'],
-						'value' => (oc_strlen($value) > 20 ? oc_substr($value, 0, 20) . '..' : $value)
-					];
+					$option_data[] = ['value' => (oc_strlen($value) > 20 ? oc_substr($value, 0, 20) . '..' : $value)] + $order_option;
 				}
 
 				$description = '';
 
+				// Subscription
 				$this->load->model('checkout/subscription');
 
 				$subscription_info = $this->model_checkout_order->getSubscription($order_info['order_id'], $order_product['order_product_id']);
@@ -490,24 +489,10 @@ class Subscription extends \Opencart\System\Engine\Controller {
 				}
 
 				$data['products'][] = [
-					'name'         => $order_product['name'],
-					'model'        => $order_product['model'],
-					'quantity'     => $order_product['quantity'],
 					'option'       => $option_data,
 					'subscription' => $description,
 					'total'        => html_entity_decode($this->currency->format($order_product['total'] + ($this->config->get('config_tax') ? $order_product['tax'] * $order_product['quantity'] : 0), $order_info['currency_code'], $order_info['currency_value']), ENT_NOQUOTES, 'UTF-8')
-				];
-			}
-
-			$data['vouchers'] = [];
-
-			$order_vouchers = $this->model_checkout_order->getVouchers($order_id);
-
-			foreach ($order_vouchers as $order_voucher) {
-				$data['vouchers'][] = [
-					'description' => $order_voucher['description'],
-					'amount'      => html_entity_decode($this->currency->format($order_voucher['amount'], $order_info['currency_code'], $order_info['currency_value']), ENT_NOQUOTES, 'UTF-8')
-				];
+				] + $order_product;
 			}
 
 			$data['totals'] = [];
@@ -515,10 +500,7 @@ class Subscription extends \Opencart\System\Engine\Controller {
 			$order_totals = $this->model_checkout_order->getTotals($order_id);
 
 			foreach ($order_totals as $order_total) {
-				$data['totals'][] = [
-					'title' => $order_total['title'],
-					'value' => html_entity_decode($this->currency->format($order_total['value'], $order_info['currency_code'], $order_info['currency_value']), ENT_NOQUOTES, 'UTF-8')
-				];
+				$data['totals'][] = ['value' => html_entity_decode($this->currency->format($order_total['value'], $order_info['currency_code'], $order_info['currency_value']), ENT_NOQUOTES, 'UTF-8')] + $order_total;
 			}
 
 			$data['comment'] = nl2br($order_info['comment']);

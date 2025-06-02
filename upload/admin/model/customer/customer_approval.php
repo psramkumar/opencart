@@ -3,15 +3,25 @@ namespace Opencart\Admin\Model\Customer;
 /**
  * Class Customer Approval
  *
+ * Can be loaded using $this->load->model('customer/customer_approval');
+ *
  * @package Opencart\Admin\Model\Customer
  */
 class CustomerApproval extends \Opencart\System\Engine\Model {
 	/**
 	 * Delete Approvals By Customer ID
 	 *
-	 * @param int $customer_id
+	 * Delete customer approvals by customer records in the database.
+	 *
+	 * @param int $customer_id primary key of the customer record
 	 *
 	 * @return void
+	 *
+	 * @example
+	 *
+	 * $this->load->model('customer/customer_approval');
+	 *
+	 * $this->model_customer_customer_approval->deleteApprovalsByCustomerId($customer_id);
 	 */
 	public function deleteApprovalsByCustomerId(int $customer_id): void {
 		$this->db->query("DELETE FROM `" . DB_PREFIX . "customer_approval` WHERE `customer_id` = '" . (int)$customer_id . "'");
@@ -20,12 +30,31 @@ class CustomerApproval extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Customer Approvals
 	 *
-	 * @param array<string, mixed> $data
+	 * Get the record of the customer approval records in the database.
 	 *
-	 * @return array<int, array<string, mixed>>
+	 * @param array<string, mixed> $data array of filters
+	 *
+	 * @return array<int, array<string, mixed>> customer approval records
+	 *
+	 * @example
+	 *
+	 * $filter_data = [
+	 *     'filter_customer'          => 'John Doe',
+	 *     'filter_email'             => 'demo@opencart.com',
+	 *     'filter_customer_group_id' => 1,
+	 *     'filter_type'              => 'customer',
+	 *     'filter_date_from'         => '2021-01-01',
+	 *     'filter_date_to'           => '2021-01-31',
+	 *     'start'                    => 0,
+	 *     'limit'                    => 10
+	 * ];
+	 *
+	 * $this->load->model('customer/customer_approval');
+	 *
+	 * $results = $this->model_customer_customer_approval->getCustomerApprovals($filter_data);
 	 */
 	public function getCustomerApprovals(array $data = []): array {
-		$sql = "SELECT *, CONCAT(`c`.`firstname`, ' ', `c`.`lastname`) AS customer, `cgd`.`name` AS customer_group, `ca`.`type` FROM `" . DB_PREFIX . "customer_approval` `ca` LEFT JOIN `" . DB_PREFIX . "customer` `c` ON (`ca`.`customer_id` = `c`.`customer_id`) LEFT JOIN `" . DB_PREFIX . "customer_group_description` `cgd` ON (`c`.`customer_group_id` = `cgd`.`customer_group_id`) WHERE `cgd`.`language_id` = '" . (int)$this->config->get('config_language_id') . "'";
+		$sql = "SELECT *, CONCAT(`c`.`firstname`, ' ', `c`.`lastname`) AS `customer`, `cgd`.`name` AS `customer_group`, `ca`.`type` FROM `" . DB_PREFIX . "customer_approval` `ca` LEFT JOIN `" . DB_PREFIX . "customer` `c` ON (`ca`.`customer_id` = `c`.`customer_id`) LEFT JOIN `" . DB_PREFIX . "customer_group_description` `cgd` ON (`c`.`customer_group_id` = `cgd`.`customer_group_id`) WHERE `cgd`.`language_id` = '" . (int)$this->config->get('config_language_id') . "'";
 
 		if (!empty($data['filter_customer'])) {
 			$sql .= " AND LCASE(CONCAT(`c`.`firstname`, ' ', `c`.`lastname`)) LIKE '" . $this->db->escape('%' . oc_strtolower($data['filter_customer']) . '%') . "'";
@@ -73,9 +102,17 @@ class CustomerApproval extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Customer Approval
 	 *
-	 * @param int $customer_approval_id
+	 * Get the record of the customer approval record in the database.
 	 *
-	 * @return array<string, mixed>
+	 * @param int $customer_approval_id primary key of the customer approval record
+	 *
+	 * @return array<string, mixed> customer approval record that has customer approval ID
+	 *
+	 * @example
+	 *
+	 * $this->load->model('customer/customer_approval');
+	 *
+	 * $customer_approval_info = $this->model_customer_customer_approval->getCustomerApproval($customer_approval_id);
 	 */
 	public function getCustomerApproval(int $customer_approval_id): array {
 		$query = $this->db->query("SELECT * FROM `" . DB_PREFIX . "customer_approval` WHERE `customer_approval_id` = '" . (int)$customer_approval_id . "'");
@@ -86,9 +123,28 @@ class CustomerApproval extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Total Customer Approvals
 	 *
-	 * @param array<string, mixed> $data
+	 * Get the total number of customer approval records in the database.
 	 *
-	 * @return int
+	 * @param array<string, mixed> $data array of filters
+	 *
+	 * @return int total number of customer approval records
+	 *
+	 * @example
+	 *
+	 * $filter_data = [
+	 *     'filter_customer'          => 'John Doe',
+	 *     'filter_email'             => 'demo@opencart.com',
+	 *     'filter_customer_group_id' => 1,
+	 *     'filter_type'              => 'customer',
+	 *     'filter_date_from'         => '2021-01-01',
+	 *     'filter_date_to'           => '2021-01-31',
+	 *     'start'                    => 0,
+	 *     'limit'                    => 10
+	 * ];
+	 *
+	 * $this->load->model('customer/customer_approval');
+	 *
+	 * $customer_approval_total = $this->model_customer_customer_approval->getTotalCustomerApprovals($filter_data);
 	 */
 	public function getTotalCustomerApprovals(array $data = []): int {
 		$sql = "SELECT COUNT(*) AS `total` FROM `" . DB_PREFIX . "customer_approval` `ca` LEFT JOIN `" . DB_PREFIX . "customer` `c` ON (`ca`.`customer_id` = `c`.`customer_id`)";
@@ -131,9 +187,15 @@ class CustomerApproval extends \Opencart\System\Engine\Model {
 	/**
 	 * Approve Customer
 	 *
-	 * @param int $customer_id
+	 * @param int $customer_id primary key of the customer record
 	 *
 	 * @return void
+	 *
+	 * @example
+	 *
+	 * $this->load->model('customer/customer_approval');
+	 *
+	 * $this->model_customer_customer_approval->approveCustomer($customer_id);
 	 */
 	public function approveCustomer(int $customer_id): void {
 		$this->db->query("UPDATE `" . DB_PREFIX . "customer` SET `status` = '1' WHERE `customer_id` = '" . (int)$customer_id . "'");
@@ -143,9 +205,15 @@ class CustomerApproval extends \Opencart\System\Engine\Model {
 	/**
 	 * Deny Customer
 	 *
-	 * @param int $customer_id
+	 * @param int $customer_id primary key of the customer record
 	 *
 	 * @return void
+	 *
+	 * @example
+	 *
+	 * $this->load->model('customer/customer_approval');
+	 *
+	 * $this->model_customer_customer_approval->denyCustomer($customer_id);
 	 */
 	public function denyCustomer(int $customer_id): void {
 		$this->db->query("DELETE FROM `" . DB_PREFIX . "customer_approval` WHERE `customer_id` = '" . (int)$customer_id . "' AND `type` = 'customer'");
@@ -154,9 +222,15 @@ class CustomerApproval extends \Opencart\System\Engine\Model {
 	/**
 	 * Approve Affiliate
 	 *
-	 * @param int $customer_id
+	 * @param int $customer_id primary key of the customer record
 	 *
 	 * @return void
+	 *
+	 * @example
+	 *
+	 * $this->load->model('customer/customer_approval');
+	 *
+	 * $this->model_customer_customer_approval->approveAffiliate($customer_id);
 	 */
 	public function approveAffiliate(int $customer_id): void {
 		$this->db->query("UPDATE `" . DB_PREFIX . "customer_affiliate` SET `status` = '1' WHERE `customer_id` = '" . (int)$customer_id . "'");
@@ -166,9 +240,17 @@ class CustomerApproval extends \Opencart\System\Engine\Model {
 	/**
 	 * Deny Affiliate
 	 *
-	 * @param int $customer_id
+	 * Delete customer approval record in the database.
+	 *
+	 * @param int $customer_id primary key of the customer record
 	 *
 	 * @return void
+	 *
+	 * @example
+	 *
+	 * $this->load->model('customer/customer_approval');
+	 *
+	 * $this->model_customer_customer_approval->denyAffiliate($customer_id);
 	 */
 	public function denyAffiliate(int $customer_id): void {
 		$this->db->query("DELETE FROM `" . DB_PREFIX . "customer_approval` WHERE `customer_id` = '" . (int)$customer_id . "' AND `type` = 'affiliate'");

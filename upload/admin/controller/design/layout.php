@@ -72,7 +72,7 @@ class Layout extends \Opencart\System\Engine\Controller {
 	 *
 	 * @return string
 	 */
-	protected function getList(): string {
+	public function getList(): string {
 		if (isset($this->request->get['sort'])) {
 			$sort = (string)$this->request->get['sort'];
 		} else {
@@ -107,6 +107,7 @@ class Layout extends \Opencart\System\Engine\Controller {
 
 		$data['action'] = $this->url->link('design/layout.list', 'user_token=' . $this->session->data['user_token'] . $url);
 
+		// Layouts
 		$data['layouts'] = [];
 
 		$filter_data = [
@@ -121,11 +122,7 @@ class Layout extends \Opencart\System\Engine\Controller {
 		$results = $this->model_design_layout->getLayouts($filter_data);
 
 		foreach ($results as $result) {
-			$data['layouts'][] = [
-				'layout_id' => $result['layout_id'],
-				'name'      => $result['name'],
-				'edit'      => $this->url->link('design/layout.form', 'user_token=' . $this->session->data['user_token'] . '&layout_id=' . $result['layout_id'] . $url)
-			];
+			$data['layouts'][] = ['edit' => $this->url->link('design/layout.form', 'user_token=' . $this->session->data['user_token'] . '&layout_id=' . $result['layout_id'] . $url)] + $result;
 		}
 
 		$url = '';
@@ -136,6 +133,7 @@ class Layout extends \Opencart\System\Engine\Controller {
 			$url .= '&order=ASC';
 		}
 
+		// Sort
 		$data['sort_name'] = $this->url->link('design/layout.list', 'user_token=' . $this->session->data['user_token'] . '&sort=name' . $url);
 
 		$url = '';
@@ -148,8 +146,10 @@ class Layout extends \Opencart\System\Engine\Controller {
 			$url .= '&order=' . $this->request->get['order'];
 		}
 
+		// Total Layouts
 		$layout_total = $this->model_design_layout->getTotalLayouts();
 
+		// Pagination
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $layout_total,
 			'page'  => $page,
@@ -206,14 +206,15 @@ class Layout extends \Opencart\System\Engine\Controller {
 		$data['save'] = $this->url->link('design/layout.save', 'user_token=' . $this->session->data['user_token']);
 		$data['back'] = $this->url->link('design/layout', 'user_token=' . $this->session->data['user_token'] . $url);
 
+		// Layout
 		if (isset($this->request->get['layout_id'])) {
 			$this->load->model('design/layout');
 
 			$layout_info = $this->model_design_layout->getLayout($this->request->get['layout_id']);
 		}
 
-		if (isset($this->request->get['layout_id'])) {
-			$data['layout_id'] = (int)$this->request->get['layout_id'];
+		if (!empty($layout_info)) {
+			$data['layout_id'] = $layout_info['layout_id'];
 		} else {
 			$data['layout_id'] = 0;
 		}
@@ -224,17 +225,21 @@ class Layout extends \Opencart\System\Engine\Controller {
 			$data['name'] = '';
 		}
 
+		// Setting
 		$this->load->model('setting/store');
 
 		$data['stores'] = $this->model_setting_store->getStores();
 
-		if (isset($this->request->get['layout_id'])) {
-			$data['layout_routes'] = $this->model_design_layout->getRoutes($this->request->get['layout_id']);
+		if (!empty($layout_info)) {
+			$data['layout_routes'] = $this->model_design_layout->getRoutes($layout_info['layout_id']);
 		} else {
 			$data['layout_routes'] = [];
 		}
 
+		// Extension
 		$this->load->model('setting/extension');
+
+		// Module
 		$this->load->model('setting/module');
 
 		$data['extensions'] = [];
@@ -268,7 +273,7 @@ class Layout extends \Opencart\System\Engine\Controller {
 
 		// Modules layout
 		if (!empty($layout_info)) {
-			$layout_modules = $this->model_design_layout->getModules($this->request->get['layout_id']);
+			$layout_modules = $this->model_design_layout->getModules($layout_info['layout_id']);
 		} else {
 			$layout_modules = [];
 		}
@@ -323,17 +328,27 @@ class Layout extends \Opencart\System\Engine\Controller {
 			$json['error']['warning'] = $this->language->get('error_permission');
 		}
 
-		if (!oc_validate_length($this->request->post['name'], 3, 64)) {
+		$required = [
+			'layout_id'     => 0,
+			'name'          => '',
+			'layout_route'  => [],
+			'layout_module' => [],
+		];
+
+		$post_info = $this->request->post + $required;
+
+		if (!oc_validate_length($post_info['name'], 3, 64)) {
 			$json['error']['name'] = $this->language->get('error_name');
 		}
 
 		if (!$json) {
+			// Layout
 			$this->load->model('design/layout');
 
-			if (!$this->request->post['layout_id']) {
-				$json['layout_id'] = $this->model_design_layout->addLayout($this->request->post);
+			if (!$post_info['layout_id']) {
+				$json['layout_id'] = $this->model_design_layout->addLayout($post_info);
 			} else {
-				$this->model_design_layout->editLayout($this->request->post['layout_id'], $this->request->post);
+				$this->model_design_layout->editLayout($post_info['layout_id'], $post_info);
 			}
 
 			$json['success'] = $this->language->get('text_success');
@@ -354,7 +369,7 @@ class Layout extends \Opencart\System\Engine\Controller {
 		$json = [];
 
 		if (isset($this->request->post['selected'])) {
-			$selected = $this->request->post['selected'];
+			$selected = (array)$this->request->post['selected'];
 		} else {
 			$selected = [];
 		}
@@ -363,23 +378,30 @@ class Layout extends \Opencart\System\Engine\Controller {
 			$json['error'] = $this->language->get('error_permission');
 		}
 
-		$this->load->model('setting/store');
+		// Product
 		$this->load->model('catalog/product');
+
+		// Category
 		$this->load->model('catalog/category');
+
+		// Manufacturer
 		$this->load->model('catalog/manufacturer');
+
+		// Information
 		$this->load->model('catalog/information');
+
+		// Article
+		$this->load->model('cms/article');
+
+		// Topic
+		$this->load->model('cms/topic');
 
 		foreach ($selected as $layout_id) {
 			if ($this->config->get('config_layout_id') == $layout_id) {
 				$json['error'] = $this->language->get('error_default');
 			}
 
-			$store_total = $this->model_setting_store->getTotalLayoutsByLayoutId($layout_id);
-
-			if ($store_total) {
-				$json['error'] = sprintf($this->language->get('error_store'), $store_total);
-			}
-
+			// Total Layouts
 			$product_total = $this->model_catalog_product->getTotalLayoutsByLayoutId($layout_id);
 
 			if ($product_total) {
@@ -403,9 +425,23 @@ class Layout extends \Opencart\System\Engine\Controller {
 			if ($information_total) {
 				$json['error'] = sprintf($this->language->get('error_information'), $information_total);
 			}
+
+			$article_total = $this->model_cms_article->getTotalLayoutsByLayoutId($layout_id);
+
+			if ($article_total) {
+				$json['error'] = sprintf($this->language->get('error_article'), $article_total);
+			}
+
+			$topic_total = $this->model_cms_topic->getTotalLayoutsByLayoutId($layout_id);
+
+			if ($topic_total) {
+				$json['error'] = sprintf($this->language->get('error_topic'), $topic_total);
+			}
+
 		}
 
 		if (!$json) {
+			// Layout
 			$this->load->model('design/layout');
 
 			foreach ($selected as $layout_id) {

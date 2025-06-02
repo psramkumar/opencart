@@ -3,14 +3,19 @@ namespace Opencart\Catalog\Controller\Common;
 /**
  * Class Cookie
  *
+ * Can be called from $this->load->controller('common/cookie');
+ *
  * @package Opencart\Catalog\Controller\Common
  */
 class Cookie extends \Opencart\System\Engine\Controller {
 	/**
+	 * Index
+	 *
 	 * @return string
 	 */
 	public function index(): string {
 		if ($this->config->get('config_cookie_id') && !isset($this->request->cookie['policy'])) {
+			// Information
 			$this->load->model('catalog/information');
 
 			$information_info = $this->model_catalog_information->getInformation((int)$this->config->get('config_cookie_id'));
@@ -50,6 +55,7 @@ class Cookie extends \Opencart\System\Engine\Controller {
 			$option = [
 				'expires'  => time() + 60 * 60 * 24 * 365,
 				'path'     => $this->config->get('session_path'),
+				'secure'   => $this->request->server['HTTPS'],
 				'SameSite' => $this->config->get('config_session_samesite')
 			];
 

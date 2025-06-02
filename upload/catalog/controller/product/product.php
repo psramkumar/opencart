@@ -7,11 +7,14 @@ namespace Opencart\Catalog\Controller\Product;
  */
 class Product extends \Opencart\System\Engine\Controller {
 	/**
+	 * Index
+	 *
 	 * @return ?\Opencart\System\Engine\Action
 	 */
 	public function index(): ?\Opencart\System\Engine\Action {
 		$this->load->language('product/product');
 
+		// Product
 		if (isset($this->request->get['product_id'])) {
 			$product_id = (int)$this->request->get['product_id'];
 		} else {
@@ -35,6 +38,7 @@ class Product extends \Opencart\System\Engine\Controller {
 				'href' => $this->url->link('common/home', 'language=' . $this->config->get('config_language'))
 			];
 
+			// Category
 			$this->load->model('catalog/category');
 
 			if (isset($this->request->get['path'])) {
@@ -90,6 +94,7 @@ class Product extends \Opencart\System\Engine\Controller {
 				}
 			}
 
+			// Manufacturer
 			$this->load->model('catalog/manufacturer');
 
 			if (isset($this->request->get['manufacturer_id'])) {
@@ -262,16 +267,34 @@ class Product extends \Opencart\System\Engine\Controller {
 
 			$data['manufacturers'] = $this->url->link('product/manufacturer.info', 'language=' . $this->config->get('config_language') . '&manufacturer_id=' . $product_info['manufacturer_id']);
 			$data['model'] = $product_info['model'];
+
+			$data['product_codes'] = [];
+
+			$results = $this->model_catalog_product->getCodes($product_id);
+
+			foreach ($results as $result) {
+				if ($result['status']) {
+					$data['product_codes'][] = $result;
+				}
+			}
+
 			$data['reward'] = $product_info['reward'];
 			$data['points'] = $product_info['points'];
 			$data['description'] = html_entity_decode($product_info['description'], ENT_QUOTES, 'UTF-8');
 
+			// Stock Status
 			if ($product_info['quantity'] <= 0) {
 				$stock_status_id = $product_info['stock_status_id'];
+
+				$data['stock'] = false;
 			} elseif (!$this->config->get('config_stock_display')) {
 				$stock_status_id = (int)$this->config->get('config_stock_status_id');
+
+				$data['stock'] = true;
 			} else {
 				$stock_status_id = 0;
+
+				$data['stock'] = true;
 			}
 
 			$this->load->model('localisation/stock_status');
@@ -279,9 +302,9 @@ class Product extends \Opencart\System\Engine\Controller {
 			$stock_status_info = $this->model_localisation_stock_status->getStockStatus($stock_status_id);
 
 			if ($stock_status_info) {
-				$data['stock'] = $stock_status_info['name'];
+				$data['stock_status'] = $stock_status_info['name'];
 			} else {
-				$data['stock'] = $product_info['quantity'];
+				$data['stock_status'] = $product_info['quantity'];
 			}
 
 			$data['rating'] = (int)$product_info['rating'];
@@ -291,6 +314,7 @@ class Product extends \Opencart\System\Engine\Controller {
 			$data['wishlist_add'] = $this->url->link('account/wishlist.add', 'language=' . $this->config->get('config_language'));
 			$data['compare_add'] = $this->url->link('product/compare.add', 'language=' . $this->config->get('config_language'));
 
+			// Image
 			$this->load->model('tool/image');
 
 			if ($product_info['image'] && is_file(DIR_IMAGE . html_entity_decode($product_info['image'], ENT_QUOTES, 'UTF-8'))) {
@@ -315,19 +339,19 @@ class Product extends \Opencart\System\Engine\Controller {
 			}
 
 			if ($this->customer->isLogged() || !$this->config->get('config_customer_price')) {
-				$data['price'] = $this->currency->format($this->tax->calculate($product_info['price'], $product_info['tax_class_id'], $this->config->get('config_tax')), $this->session->data['currency']);
+				$data['price'] = $this->tax->calculate($product_info['price'], $product_info['tax_class_id'], $this->config->get('config_tax'));
 			} else {
 				$data['price'] = false;
 			}
 
 			if ((float)$product_info['special']) {
-				$data['special'] = $this->currency->format($this->tax->calculate($product_info['special'], $product_info['tax_class_id'], $this->config->get('config_tax')), $this->session->data['currency']);
+				$data['special'] = $this->tax->calculate($product_info['special'], $product_info['tax_class_id'], $this->config->get('config_tax'));
 			} else {
 				$data['special'] = false;
 			}
 
 			if ($this->config->get('config_tax')) {
-				$data['tax'] = $this->currency->format((float)$product_info['special'] ? $product_info['special'] : $product_info['price'], $this->session->data['currency']);
+				$data['tax'] = (float)$product_info['special'] ? $product_info['special'] : $product_info['price'];
 			} else {
 				$data['tax'] = false;
 			}
@@ -338,10 +362,7 @@ class Product extends \Opencart\System\Engine\Controller {
 
 			if ($this->customer->isLogged() || !$this->config->get('config_customer_price')) {
 				foreach ($discounts as $discount) {
-					$data['discounts'][] = [
-						'quantity' => $discount['quantity'],
-						'price'    => $this->currency->format($this->tax->calculate($discount['price'], $product_info['tax_class_id'], $this->config->get('config_tax')), $this->session->data['currency'])
-					];
+					$data['discounts'][] = ['price' => $this->tax->calculate($discount['price'], $product_info['tax_class_id'], $this->config->get('config_tax'))] + $discount;
 				}
 			}
 
@@ -351,19 +372,19 @@ class Product extends \Opencart\System\Engine\Controller {
 			if ($product_info['master_id']) {
 				$master_id = (int)$product_info['master_id'];
 			} else {
-				$master_id = (int)$this->request->get['product_id'];
+				$master_id = (int)$product_id;
 			}
 
 			$product_options = $this->model_catalog_product->getOptions($master_id);
 
 			foreach ($product_options as $option) {
-				if ((int)$this->request->get['product_id'] && !isset($product_info['override']['variant'][$option['product_option_id']])) {
+				if ($product_id && !isset($product_info['override']['variant'][$option['product_option_id']])) {
 					$product_option_value_data = [];
 
 					foreach ($option['product_option_value'] as $option_value) {
 						if (!$option_value['subtract'] || ($option_value['quantity'] > 0)) {
 							if ((($this->config->get('config_customer_price') && $this->customer->isLogged()) || !$this->config->get('config_customer_price')) && (float)$option_value['price']) {
-								$price = $this->currency->format($this->tax->calculate($option_value['price'], $product_info['tax_class_id'], $this->config->get('config_tax')), $this->session->data['currency']);
+								$price = $this->tax->calculate($option_value['price'], $product_info['tax_class_id'], $this->config->get('config_tax'));
 							} else {
 								$price = false;
 							}
@@ -375,29 +396,17 @@ class Product extends \Opencart\System\Engine\Controller {
 							}
 
 							$product_option_value_data[] = [
-								'product_option_value_id' => $option_value['product_option_value_id'],
-								'option_value_id'         => $option_value['option_value_id'],
-								'name'                    => $option_value['name'],
-								'image'                   => $this->model_tool_image->resize($image, 50, 50),
-								'price'                   => $price,
-								'price_prefix'            => $option_value['price_prefix']
-							];
+								'image' => $this->model_tool_image->resize($image, 50, 50),
+								'price' => $price
+							] + $option_value;
 						}
 					}
 
-					$data['options'][] = [
-						'product_option_id'    => $option['product_option_id'],
-						'product_option_value' => $product_option_value_data,
-						'option_id'            => $option['option_id'],
-						'name'                 => $option['name'],
-						'type'                 => $option['type'],
-						'value'                => $option['value'],
-						'required'             => $option['required']
-					];
+					$data['options'][] = ['product_option_value' => $product_option_value_data] + $option;
 				}
 			}
 
-			// Subscriptions
+			// Subscription Plans
 			$data['subscription_plans'] = [];
 
 			$results = $this->model_catalog_product->getSubscriptions($product_id);
@@ -405,31 +414,26 @@ class Product extends \Opencart\System\Engine\Controller {
 			foreach ($results as $result) {
 				$description = '';
 
-				if ($result['trial_status']) {
-					$trial_price = $this->currency->format($this->tax->calculate($result['trial_price'], $product_info['tax_class_id'], $this->config->get('config_tax')), $this->session->data['currency']);
-					$trial_cycle = $result['trial_cycle'];
-					$trial_frequency = $this->language->get('text_' . $result['trial_frequency']);
-					$trial_duration = $result['trial_duration'];
+				if ($this->customer->isLogged() || !$this->config->get('config_customer_price')) {
+					if ($result['duration']) {
+						$price = ($product_info['special'] ?: $product_info['price']) / $result['duration'];
+					} else {
+						$price = ($product_info['special'] ?: $product_info['price']);
+					}
 
-					$description .= sprintf($this->language->get('text_subscription_trial'), $trial_price, $trial_cycle, $trial_frequency, $trial_duration);
+					$price = $this->tax->calculate($price, $product_info['tax_class_id'], $this->config->get('config_tax'));
+					$cycle = $result['cycle'];
+					$frequency = $this->language->get('text_' . $result['frequency']);
+					$duration = $result['duration'];
+
+					if ($duration) {
+						$description = sprintf($this->language->get('text_subscription_duration'), $price, $cycle, $frequency, $duration);
+					} else {
+						$description = sprintf($this->language->get('text_subscription_cancel'), $price, $cycle, $frequency);
+					}
 				}
 
-				$price = $this->currency->format($this->tax->calculate($result['price'], $product_info['tax_class_id'], $this->config->get('config_tax')), $this->session->data['currency']);
-				$cycle = $result['cycle'];
-				$frequency = $this->language->get('text_' . $result['frequency']);
-				$duration = $result['duration'];
-
-				if ($duration) {
-					$description .= sprintf($this->language->get('text_subscription_duration'), $price, $cycle, $frequency, $duration);
-				} else {
-					$description .= sprintf($this->language->get('text_subscription_cancel'), $price, $cycle, $frequency);
-				}
-
-				$data['subscription_plans'][] = [
-					'subscription_plan_id' => $result['subscription_plan_id'],
-					'name'                 => $result['name'],
-					'description'          => $description
-				];
+				$data['subscription_plans'][] = ['description' => $description] + $result;
 			}
 
 			if ($product_info['minimum']) {
@@ -438,61 +442,15 @@ class Product extends \Opencart\System\Engine\Controller {
 				$data['minimum'] = 1;
 			}
 
-			$data['share'] = $this->url->link('product/product', 'language=' . $this->config->get('config_language') . '&product_id=' . (int)$this->request->get['product_id']);
+			$data['share'] = $this->url->link('product/product', 'language=' . $this->config->get('config_language') . '&product_id=' . $product_id);
 
+			// Attribute Groups
 			$data['attribute_groups'] = $this->model_catalog_product->getAttributes($product_id);
 
-			$data['products'] = [];
+			// Related
+			$data['related'] = $this->load->controller('product/related');
 
-			$results = $this->model_catalog_product->getRelated($product_id);
-
-			foreach ($results as $result) {
-				$description = trim(strip_tags(html_entity_decode($result['description'], ENT_QUOTES, 'UTF-8')));
-
-				if (oc_strlen($description) > $this->config->get('config_product_description_length')) {
-					$description = oc_substr($description, 0, $this->config->get('config_product_description_length')) . '..';
-				}
-
-				if ($result['image'] && is_file(DIR_IMAGE . html_entity_decode($result['image'], ENT_QUOTES, 'UTF-8'))) {
-					$image = $result['image'];
-				} else {
-					$image = 'placeholder.png';
-				}
-
-				if ($this->customer->isLogged() || !$this->config->get('config_customer_price')) {
-					$price = $this->currency->format($this->tax->calculate($result['price'], $result['tax_class_id'], $this->config->get('config_tax')), $this->session->data['currency']);
-				} else {
-					$price = false;
-				}
-
-				if ((float)$result['special']) {
-					$special = $this->currency->format($this->tax->calculate($result['special'], $result['tax_class_id'], $this->config->get('config_tax')), $this->session->data['currency']);
-				} else {
-					$special = false;
-				}
-
-				if ($this->config->get('config_tax')) {
-					$tax = $this->currency->format((float)$result['special'] ? $result['special'] : $result['price'], $this->session->data['currency']);
-				} else {
-					$tax = false;
-				}
-
-				$product_data = [
-					'product_id'  => $result['product_id'],
-					'thumb'       => $this->model_tool_image->resize($image, $this->config->get('config_image_related_width'), $this->config->get('config_image_related_height')),
-					'name'        => $result['name'],
-					'description' => $description,
-					'price'       => $price,
-					'special'     => $special,
-					'tax'         => $tax,
-					'minimum'     => $result['minimum'] > 0 ? $result['minimum'] : 1,
-					'rating'      => $result['rating'],
-					'href'        => $this->url->link('product/product', 'language=' . $this->config->get('config_language') . '&product_id=' . $result['product_id'])
-				];
-
-				$data['products'][] = $this->load->controller('product/thumb', $product_data);
-			}
-
+			// Tag
 			$data['tags'] = [];
 
 			if ($product_info['tag']) {
@@ -507,10 +465,11 @@ class Product extends \Opencart\System\Engine\Controller {
 			}
 
 			if ($this->config->get('config_product_report_status')) {
-				$this->model_catalog_product->addReport($this->request->get['product_id'], oc_get_ip());
+				$this->model_catalog_product->addReport($product_id, oc_get_ip());
 			}
 
 			$data['language'] = $this->config->get('config_language');
+			$data['currency'] = $this->session->data['currency'];
 
 			$data['column_left'] = $this->load->controller('common/column_left');
 			$data['column_right'] = $this->load->controller('common/column_right');

@@ -1,114 +1,158 @@
 <?php
-namespace Opencart\catalog\controller\api;
+namespace Opencart\Catalog\Controller\Api;
 /**
  * Class Cart
  *
- * @package Opencart\Catalog\Controller\Api\Sale
+ * Can be loaded using $this->load->controller('api/cart');
+ *
+ * @package Opencart\Catalog\Controller\Api
  */
 class Cart extends \Opencart\System\Engine\Controller {
 	/**
-	 * @return void
+	 * Index
+	 *
+	 * @return array<string, mixed>
 	 */
-	public function index(): void {
-		$this->load->language('api/sale/cart');
+	public function index(): array {
+		$this->load->language('api/cart');
 
-		$json = [];
+		$output = [];
 
-		// Stock
-		if (!$this->cart->hasStock() && (!$this->config->get('config_stock_checkout') || $this->config->get('config_stock_warning'))) {
-			$json['error']['stock'] = $this->language->get('error_stock');
+		if (isset($this->request->post['product'])) {
+			$products = (array)$this->request->post['product'];
+		} else {
+			$products = [];
 		}
 
-		$totals = [];
-		$taxes = $this->cart->getTaxes();
-		$total = 0;
+		// Product
+		$this->load->model('catalog/product');
 
-		$this->load->model('checkout/cart');
-
-		($this->model_checkout_cart->getTotals)($totals, $taxes, $total);
-
-		$json['products'] = [];
-
-		$products = $this->model_checkout_cart->getProducts();
-
-		foreach ($products as $product) {
-			$description = '';
-
-			if ($product['subscription']) {
-				if ($product['subscription']['trial_status']) {
-					$trial_price = $this->currency->format($this->tax->calculate($product['subscription']['trial_price'], $product['tax_class_id'], $this->config->get('config_tax')), $this->session->data['currency']);
-					$trial_cycle = $product['subscription']['trial_cycle'];
-					$trial_frequency = $this->language->get('text_' . $product['subscription']['trial_frequency']);
-					$trial_duration = $product['subscription']['trial_duration'];
-
-					$description .= sprintf($this->language->get('text_subscription_trial'), $trial_price, $trial_cycle, $trial_frequency, $trial_duration);
-				}
-
-				$price = $this->currency->format($this->tax->calculate($product['subscription']['price'], $product['tax_class_id'], $this->config->get('config_tax')), $this->session->data['currency']);
-				$cycle = $product['subscription']['cycle'];
-				$frequency = $this->language->get('text_' . $product['subscription']['frequency']);
-				$duration = $product['subscription']['duration'];
-
-				if ($duration) {
-					$description .= sprintf($this->language->get('text_subscription_duration'), $price, $cycle, $frequency, $duration);
-				} else {
-					$description .= sprintf($this->language->get('text_subscription_cancel'), $price, $cycle, $frequency);
-				}
+		foreach ($products as $key => $product) {
+			if (isset($product['product_id'])) {
+				$product_id = (int)$product['product_id'];
+			} else {
+				$product_id = 0;
 			}
 
-			$json['products'][] = [
-				'cart_id'      => $product['cart_id'],
-				'product_id'   => $product['product_id'],
-				'name'         => $product['name'],
-				'model'        => $product['model'],
-				'option'       => $product['option'],
-				'subscription' => $description,
-				'quantity'     => $product['quantity'],
-				'stock'        => $product['stock'],
-				'minimum'      => $product['minimum'],
-				'reward'       => $product['reward'],
-				'price'        => $this->currency->format($this->tax->calculate($product['price'], $product['tax_class_id'], $this->config->get('config_tax')), $this->session->data['currency']),
-				'total'        => $this->currency->format($this->tax->calculate($product['price'], $product['tax_class_id'], $this->config->get('config_tax')) * $product['quantity'], $this->session->data['currency'])
-			];
+			if (isset($product['quantity'])) {
+				$quantity = (int)$product['quantity'];
+			} else {
+				$quantity = 0;
+			}
+
+			if (isset($product['option'])) {
+				$option = array_filter((array)$product['option']);
+			} else {
+				$option = [];
+			}
+
+			if (isset($product['subscription_plan_id'])) {
+				$subscription_plan_id = (int)$product['subscription_plan_id'];
+			} else {
+				$subscription_plan_id = 0;
+			}
+
+			$product_info = $this->model_catalog_product->getProduct($product_id);
+
+			if ($product_info) {
+				// Merge variant code with options
+				foreach ($product_info['variant'] as $option_id => $value) {
+					$option[$option_id] = $value;
+				}
+
+				// Validate that have been sent are part of the product
+				foreach ($option as $product_option_id => $value) {
+					$product_option_info = $this->model_catalog_product->getOption($product_id, (int)$product_option_id);
+
+					if ($product_option_info) {
+						if ($product_option_info['type'] == 'select' || $product_option_info['type'] == 'radio' || $product_option_info['type'] == 'checkbox') {
+							if (!is_array($value)) {
+								$product_option_values = [$value];
+							} else {
+								$product_option_values = $value;
+							}
+
+							foreach ($product_option_values as $product_option_value_id) {
+								$product_option_value_info = $this->model_catalog_product->getOptionValue($product_id, $product_option_value_id);
+
+								if (!$product_option_value_info) {
+									$output['error']['product_' . (int)$key . '_option_' . (int)$product_option_id] = $this->language->get('error_option');
+								} elseif ($product_option_value_info['subtract'] && (!$this->config->get('config_stock_checkout') && (!$product_option_value_info['quantity'] || ($product_option_value_info['quantity'] < $product['quantity'])))) {
+									$output['error']['product_' . (int)$key . '_option_' . (int)$product_option_id] = $this->language->get('error_option_stock');
+								}
+							}
+						}
+					} else {
+						$output['error']['product_' . (int)$key . '_option_' . (int)$product_option_id] = $this->language->get('error_option');
+					}
+				}
+
+				// Validate required options
+				$product_options = $this->model_catalog_product->getOptions($product_id);
+
+				foreach ($product_options as $product_option) {
+					if ($product_option['required'] && empty($option[$product_option['product_option_id']])) {
+						$output['error']['product_' . (int)$key . '_option_' . $product_option['product_option_id']] = sprintf($this->language->get('error_required'), $product_option['name']);
+					} elseif (($product_option['type'] == 'text') && !empty($product_option['validation']) && !oc_validate_regex($option[$product_option['product_option_id']], $product_option['validation'])) {
+						$output['error']['product_' . (int)$key . '_option_' . $product_option['product_option_id']] = sprintf($this->language->get('error_regex'), $product_option['name']);
+					}
+				}
+
+				$product_total = 0;
+
+				foreach ($products as $product_2) {
+					if ($product_2['product_id'] == $product['product_id']) {
+						$product_total += $product_2['quantity'];
+					}
+				}
+
+				// Stock
+				if (!$this->config->get('config_stock_checkout') && (!$product_info['quantity'] || ($product_info['quantity'] < $product_total))) {
+					$output['error']['product_' . (int)$key . '_product'] = $this->language->get('error_stock');
+				}
+
+				// Minimum quantity
+				if ($this->request->get['call'] == 'confirm' && ($product_info['minimum'] > $product_total)) {
+					$output['error']['product_' . (int)$key . '_product'] = sprintf($this->language->get('error_minimum'), $product_info['name'], $product_info['minimum']);
+				}
+
+				// Validate subscription plan
+				$subscriptions = $this->model_catalog_product->getSubscriptions($product['product_id']);
+
+				if ($subscriptions && (!$subscription_plan_id || !in_array($subscription_plan_id, array_column($subscriptions, 'subscription_plan_id')))) {
+					$output['error']['product_' . (int)$key . '_subscription'] = $this->language->get('error_subscription');
+				}
+			} else {
+				$output['error']['product_' . (int)$key . '_product'] = $this->language->get('error_product');
+			}
+
+			if (!$output) {
+				$this->cart->add($product_id, $quantity, $option, $subscription_plan_id);
+			}
 		}
 
-		$json['vouchers'] = [];
-
-		$vouchers = $this->model_checkout_cart->getVouchers();
-
-		foreach ($vouchers as $key => $voucher) {
-			$json['vouchers'][] = [
-				'key'         => $key,
-				'description' => sprintf($this->language->get('text_for'), $this->currency->format($voucher['amount'], $this->session->data['currency']), $voucher['to_name']),
-				'amount'      => $this->currency->format($voucher['amount'], $this->session->data['currency'])
-			];
+		if (!$output) {
+			$output['success'] = $this->language->get('text_success');
+		} else {
+			$output['error']['warning'] = $this->language->get('error_warning');
 		}
 
-		$json['totals'] = [];
-
-		foreach ($totals as $total) {
-			$json['totals'][] = [
-				'title' => $total['title'],
-				'text'  => $this->currency->format($total['value'], $this->session->data['currency'])
-			];
-		}
-
-		$json['shipping_required'] = $this->cart->hasShipping();
-
-		$this->response->addHeader('Content-Type: application/json');
-		$this->response->setOutput(json_encode($json));
+		return $output;
 	}
 
 	/**
-	 * Add
+	 * Add Product
 	 *
-	 * @return void
+	 * Add any single product
+	 *
+	 * @return array<string, mixed>
 	 */
-	public function add(): void {
-		$this->load->language('api/sale/cart');
+	public function addProduct(): array {
+		$this->load->language('api/cart');
 
-		$json = [];
+		$output = [];
 
+		// Add any single products
 		if (isset($this->request->post['product_id'])) {
 			$product_id = (int)$this->request->post['product_id'];
 		} else {
@@ -122,7 +166,7 @@ class Cart extends \Opencart\System\Engine\Controller {
 		}
 
 		if (isset($this->request->post['option'])) {
-			$option = array_filter($this->request->post['option']);
+			$option = array_filter((array)$this->request->post['option']);
 		} else {
 			$option = [];
 		}
@@ -133,6 +177,7 @@ class Cart extends \Opencart\System\Engine\Controller {
 			$subscription_plan_id = 0;
 		}
 
+		// Product
 		$this->load->model('catalog/product');
 
 		$product_info = $this->model_catalog_product->getProduct($product_id);
@@ -144,103 +189,143 @@ class Cart extends \Opencart\System\Engine\Controller {
 			}
 
 			// Merge variant code with options
-			foreach ($product_info['variant'] as $key => $value) {
-				$option[$key] = $value;
+			foreach ($product_info['variant'] as $option_id => $value) {
+				$option[$option_id] = $value;
 			}
 
-			// Validate options
+			// Validate that have been sent are part of the product
+			foreach ($option as $product_option_id => $value) {
+				$product_option_info = $this->model_catalog_product->getOption($product_id, $product_option_id);
+
+				if ($product_option_info) {
+					if ($product_option_info['type'] == 'select' || $product_option_info['type'] == 'radio' || $product_option_info['type'] == 'checkbox') {
+						if (!is_array($value)) {
+							$product_option_values = [$value];
+						} else {
+							$product_option_values = $value;
+						}
+
+						foreach ($product_option_values as $product_option_value_id) {
+							$product_option_value_info = $this->model_catalog_product->getOptionValue($product_id, $product_option_value_id);
+
+							if (!$product_option_value_info) {
+								$output['error']['option_' . $product_option_id] = $this->language->get('error_option');
+							} elseif ($product_option_value_info['subtract'] && (!$product_option_value_info['quantity'] || ($product_option_value_info['quantity'] < $quantity))) {
+								$output['error']['option_' . $product_option_id] = $this->language->get('error_option_stock');
+							}
+						}
+					}
+				} else {
+					$output['error']['option_' . $product_option_id] = $this->language->get('error_option');
+				}
+			}
+
+			// Validate Options
 			$product_options = $this->model_catalog_product->getOptions($product_id);
 
 			foreach ($product_options as $product_option) {
 				if ($product_option['required'] && empty($option[$product_option['product_option_id']])) {
-					$json['error']['option_' . $product_option['product_option_id']] = sprintf($this->language->get('error_required'), $product_option['name']);
+					$output['error']['option_' . $product_option['product_option_id']] = sprintf($this->language->get('error_required'), $product_option['name']);
+				} elseif (($product_option['type'] == 'text') && !empty($product_option['validation']) && !oc_validate_regex($option[$product_option['product_option_id']], $product_option['validation'])) {
+					$output['error']['option_' . $product_option['product_option_id']] = sprintf($this->language->get('error_regex'), $product_option['name']);
 				}
 			}
 
-			// Validate Subscription plan
+			// Stock
+			$product_total = 0;
+
+			$products = $this->cart->getProducts();
+
+			foreach ($products as $product_2) {
+				if ($product_2['product_id'] == $product_info['product_id']) {
+					$product_total += $product_2['quantity'];
+				}
+			}
+
+			if (!$this->config->get('config_stock_checkout') && (!$product_info['quantity'] || ($product_info['quantity'] < $product_total))) {
+				$output['error']['warning'] = $this->language->get('error_stock');
+			}
+
+			// Validate subscription plan
 			$subscriptions = $this->model_catalog_product->getSubscriptions($product_id);
 
-			if ($subscriptions) {
-				$subscription_plan_ids = [];
-
-				foreach ($subscriptions as $subscription) {
-					$subscription_plan_ids[] = $subscription['subscription_plan_id'];
-				}
-
-				if (!in_array($subscription_plan_id, $subscription_plan_ids)) {
-					$json['error']['subscription'] = $this->language->get('error_subscription');
-				}
+			if ($subscriptions && (!$subscription_plan_id || !in_array($subscription_plan_id, array_column($subscriptions, 'subscription_plan_id')))) {
+				$output['error']['subscription'] = $this->language->get('error_subscription');
 			}
 		} else {
-			$json['error']['warning'] = $this->language->get('error_product');
+			$output['error']['warning'] = $this->language->get('error_product');
 		}
 
-		if (!$json) {
+		if (!$output) {
 			$this->cart->add($product_id, $quantity, $option, $subscription_plan_id);
 
-			$json['success'] = $this->language->get('text_success');
+			$output['success'] = $this->language->get('text_success');
 		}
 
-		$this->response->addHeader('Content-Type: application/json');
-		$this->response->setOutput(json_encode($json));
+		return $output;
 	}
 
 	/**
-	 * Edit
+	 * Get products
 	 *
-	 * @return void
+	 * @return array<string, mixed>
 	 */
-	public function edit(): void {
-		$this->load->language('api/sale/cart');
+	public function getProducts(): array {
+		$this->load->language('api/cart');
 
-		$json = [];
+		// We fetch any products that have an error
+		$product_data = [];
 
-		if (isset($this->request->post['key'])) {
-			$key = (int)$this->request->post['key'];
-		} else {
-			$key = 0;
+		// Cart
+		$this->load->model('checkout/cart');
+
+		$products = $this->model_checkout_cart->getProducts();
+
+		foreach ($products as $product) {
+			$subscription = '';
+
+			if ($product['subscription']) {
+				if ($product['subscription']['trial_status']) {
+					$subscription .= sprintf($this->language->get('text_subscription_trial'), $price_status ?? $product['subscription']['trial_price_text'], $product['subscription']['trial_cycle'], $product['subscription']['trial_frequency'], $product['subscription']['trial_duration']);
+				}
+
+				if ($product['subscription']['duration']) {
+					$subscription .= sprintf($this->language->get('text_subscription_duration'), $product['subscription']['price_text'], $product['subscription']['cycle'], $product['subscription']['frequency'], $product['subscription']['duration']);
+				} else {
+					$subscription .= sprintf($this->language->get('text_subscription_cancel'), $product['subscription']['price_text'], $product['subscription']['cycle'], $product['subscription']['frequency']);
+				}
+			}
+
+			$product_data[] = [
+				'subscription_plan_id' => $product['subscription'] ? $product['subscription']['subscription_plan_id'] : 0,
+				'subscription'         => $subscription
+			] + $product;
 		}
 
-		if (isset($this->request->post['quantity'])) {
-			$quantity = (int)$this->request->post['quantity'];
-		} else {
-			$quantity = 1;
-		}
-
-		$this->cart->update($key, $quantity);
-
-		$json['success'] = $this->language->get('text_success');
-
-		unset($this->session->data['reward']);
-
-		$this->response->addHeader('Content-Type: application/json');
-		$this->response->setOutput(json_encode($json));
+		return $product_data;
 	}
 
 	/**
-	 * Remove
+	 * Get Totals
 	 *
-	 * @return void
+	 * @return array<string, mixed>
 	 */
-	public function remove(): void {
-		$this->load->language('api/sale/cart');
+	public function getTotals(): array {
+		$totals = [];
+		$taxes = $this->cart->getTaxes();
+		$total = 0;
 
-		$json = [];
+		// Cart
+		$this->load->model('checkout/cart');
 
-		if (isset($this->request->post['key'])) {
-			$key = (int)$this->request->post['key'];
-		} else {
-			$key = 0;
+		($this->model_checkout_cart->getTotals)($totals, $taxes, $total);
+
+		$total_data = [];
+
+		foreach ($totals as $total) {
+			$total_data[] = ['text' => $total['value']] + $total;
 		}
 
-		// Remove
-		$this->cart->remove($key);
-
-		$json['success'] = $this->language->get('text_success');
-
-		unset($this->session->data['reward']);
-
-		$this->response->addHeader('Content-Type: application/json');
-		$this->response->setOutput(json_encode($json));
+		return $total_data;
 	}
 }

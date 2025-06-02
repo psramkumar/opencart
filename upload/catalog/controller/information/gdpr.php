@@ -7,9 +7,12 @@ namespace Opencart\Catalog\Controller\Information;
  */
 class Gdpr extends \Opencart\System\Engine\Controller {
 	/**
+	 * Index
+	 *
 	 * @return \Opencart\System\Engine\Action|null
 	 */
 	public function index(): ?\Opencart\System\Engine\Action {
+		// Information
 		$this->load->model('catalog/information');
 
 		$information_info = $this->model_catalog_information->getInformation((int)$this->config->get('config_gdpr_id'));
@@ -58,7 +61,7 @@ class Gdpr extends \Opencart\System\Engine\Controller {
 		}
 	}
 
-	/*
+	/**
 	 *  Action Statuses
 	 *
 	 *	EXPORT
@@ -80,7 +83,7 @@ class Gdpr extends \Opencart\System\Engine\Controller {
 	 *	pending    = 1
 	 *	processing = 2
 	 *	denied     = -1
-	*/
+	 */
 	/**
 	 * Action
 	 *
@@ -91,20 +94,16 @@ class Gdpr extends \Opencart\System\Engine\Controller {
 
 		$json = [];
 
-		if (isset($this->request->post['email'])) {
-			$email = $this->request->post['email'];
-		} else {
-			$email = '';
-		}
+		// Add keys for missing post vars
+		$required = [
+			'email'  => '',
+			'action' => '',
+		];
 
-		if (isset($this->request->post['action'])) {
-			$action = $this->request->post['action'];
-		} else {
-			$action = '';
-		}
+		$post_info = $this->request->post + $required;
 
 		// Validate E-Mail
-		if ((oc_strlen($email) > 96) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+		if (!oc_validate_email($post_info['email'])) {
 			$json['error']['email'] = $this->language->get('error_email');
 		}
 
@@ -114,7 +113,7 @@ class Gdpr extends \Opencart\System\Engine\Controller {
 			'remove'
 		];
 
-		if (!in_array($action, $allowed)) {
+		if (!in_array($post_info['action'], $allowed)) {
 			$json['error']['action'] = $this->language->get('error_action');
 		}
 
@@ -122,12 +121,13 @@ class Gdpr extends \Opencart\System\Engine\Controller {
 			// Added additional check so people are not spamming requests
 			$status = true;
 
+			// GDPR
 			$this->load->model('account/gdpr');
 
-			$results = $this->model_account_gdpr->getGdprsByEmail($email);
+			$results = $this->model_account_gdpr->getGdprsByEmail($post_info['email']);
 
 			foreach ($results as $result) {
-				if ($result['action'] == $action) {
+				if ($result['action'] == $post_info['action']) {
 					$status = false;
 
 					break;
@@ -135,7 +135,7 @@ class Gdpr extends \Opencart\System\Engine\Controller {
 			}
 
 			if ($status) {
-				$this->model_account_gdpr->addGdpr(oc_token(32), $email, $action);
+				$this->model_account_gdpr->addGdpr(oc_token(32), $post_info['email'], $post_info['action']);
 			}
 
 			$json['success'] = $this->language->get('text_success');
@@ -157,6 +157,7 @@ class Gdpr extends \Opencart\System\Engine\Controller {
 			$code = '';
 		}
 
+		// GDPR
 		$this->load->model('account/gdpr');
 
 		$gdpr_info = $this->model_account_gdpr->getGdprByCode($code);

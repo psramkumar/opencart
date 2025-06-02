@@ -7,6 +7,8 @@ namespace Opencart\Catalog\Controller\Information;
  */
 class Sitemap extends \Opencart\System\Engine\Controller {
 	/**
+	 * Index
+	 *
 	 * @return void
 	 */
 	public function index(): void {
@@ -26,6 +28,7 @@ class Sitemap extends \Opencart\System\Engine\Controller {
 			'href' => $this->url->link('information/sitemap', 'language=' . $this->config->get('config_language'))
 		];
 
+		// Category
 		$this->load->model('catalog/category');
 
 		$data['categories'] = [];
@@ -43,24 +46,19 @@ class Sitemap extends \Opencart\System\Engine\Controller {
 				$categories_3 = $this->model_catalog_category->getCategories($category_2['category_id']);
 
 				foreach ($categories_3 as $category_3) {
-					$level_3_data[] = [
-						'name' => $category_3['name'],
-						'href' => $this->url->link('product/category', 'language=' . $this->config->get('config_language') . '&path=' . $category_1['category_id'] . '_' . $category_2['category_id'] . '_' . $category_3['category_id'])
-					];
+					$level_3_data[] = ['href' => $this->url->link('product/category', 'language=' . $this->config->get('config_language') . '&path=' . $category_1['category_id'] . '_' . $category_2['category_id'] . '_' . $category_3['category_id'])] + $category_3;
 				}
 
 				$level_2_data[] = [
-					'name'     => $category_2['name'],
 					'children' => $level_3_data,
 					'href'     => $this->url->link('product/category', 'language=' . $this->config->get('config_language') . '&path=' . $category_1['category_id'] . '_' . $category_2['category_id'])
-				];
+				] + $category_2;
 			}
 
 			$data['categories'][] = [
-				'name'     => $category_1['name'],
 				'children' => $level_2_data,
 				'href'     => $this->url->link('product/category', 'language=' . $this->config->get('config_language') . '&path=' . $category_1['category_id'])
-			];
+			] + $category_1;
 		}
 
 		$data['special'] = $this->url->link('product/special', 'language=' . $this->config->get('config_language'));
@@ -75,15 +73,13 @@ class Sitemap extends \Opencart\System\Engine\Controller {
 		$data['search'] = $this->url->link('product/search', 'language=' . $this->config->get('config_language'));
 		$data['contact'] = $this->url->link('information/contact', 'language=' . $this->config->get('config_language'));
 
+		// Information
 		$this->load->model('catalog/information');
 
 		$data['informations'] = [];
 
 		foreach ($this->model_catalog_information->getInformations() as $result) {
-			$data['informations'][] = [
-				'title' => $result['title'],
-				'href'  => $this->url->link('information/information', 'language=' . $this->config->get('config_language') . '&information_id=' . $result['information_id'])
-			];
+			$data['informations'][] = ['href' => $this->url->link('information/information', 'language=' . $this->config->get('config_language') . '&information_id=' . $result['information_id'])] + $result;
 		}
 
 		$data['column_left'] = $this->load->controller('common/column_left');

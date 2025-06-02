@@ -3,13 +3,15 @@ namespace Opencart\Catalog\Model\Extension\Opencart\Shipping;
 /**
  * Class Weight
  *
+ * Can be called from $this->load->model('extension/opencart/shipping/weight');
+ *
  * @package Opencart\Catalog\Model\Extension\Opencart\Shipping
  */
 class Weight extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Quote
 	 *
-	 * @param array<string, mixed> $address
+	 * @param array<string, mixed> $address array of data
 	 *
 	 * @return array<string, mixed>
 	 */
@@ -18,6 +20,7 @@ class Weight extends \Opencart\System\Engine\Model {
 
 		$quote_data = [];
 
+		// Geo Zone
 		$this->load->model('localisation/geo_zone');
 
 		$results = $this->model_localisation_geo_zone->getGeoZones();
@@ -56,10 +59,10 @@ class Weight extends \Opencart\System\Engine\Model {
 				if ((string)$cost != '') {
 					$quote_data['weight_' . $result['geo_zone_id']] = [
 						'code'         => 'weight.weight_' . $result['geo_zone_id'],
-						'name'         => $result['name'] . '  (' . $this->language->get('text_weight') . ' ' . $this->weight->format($weight, $this->config->get('config_weight_class_id')) . ')',
+						'name'         => $result['name'] . ' (' . $this->language->get('text_weight') . ' ' . $this->weight->format($weight, $this->config->get('config_weight_class_id')) . ')',
 						'cost'         => $cost,
 						'tax_class_id' => $this->config->get('shipping_weight_tax_class_id'),
-						'text'         => $this->currency->format($this->tax->calculate((float)$cost, $this->config->get('shipping_weight_tax_class_id'), $this->config->get('config_tax')), $this->session->data['currency'])
+						'text'         => $this->tax->calculate((float)$cost, $this->config->get('shipping_weight_tax_class_id'), $this->config->get('config_tax'))
 					];
 				}
 			}

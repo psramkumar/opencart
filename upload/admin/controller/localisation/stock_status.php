@@ -72,7 +72,7 @@ class StockStatus extends \Opencart\System\Engine\Controller {
 	 *
 	 * @return string
 	 */
-	protected function getList(): string {
+	public function getList(): string {
 		if (isset($this->request->get['sort'])) {
 			$sort = (string)$this->request->get['sort'];
 		} else {
@@ -107,6 +107,7 @@ class StockStatus extends \Opencart\System\Engine\Controller {
 
 		$data['action'] = $this->url->link('localisation/stock_status.list', 'user_token=' . $this->session->data['user_token'] . $url);
 
+		// Stock Statuses
 		$data['stock_statuses'] = [];
 
 		$filter_data = [
@@ -121,11 +122,7 @@ class StockStatus extends \Opencart\System\Engine\Controller {
 		$results = $this->model_localisation_stock_status->getStockStatuses($filter_data);
 
 		foreach ($results as $result) {
-			$data['stock_statuses'][] = [
-				'stock_status_id' => $result['stock_status_id'],
-				'name'            => $result['name'],
-				'edit'            => $this->url->link('localisation/stock_status.form', 'user_token=' . $this->session->data['user_token'] . '&stock_status_id=' . $result['stock_status_id'] . $url)
-			];
+			$data['stock_statuses'][] = ['edit' => $this->url->link('localisation/stock_status.form', 'user_token=' . $this->session->data['user_token'] . '&stock_status_id=' . $result['stock_status_id'] . $url)] + $result;
 		}
 
 		$url = '';
@@ -136,6 +133,7 @@ class StockStatus extends \Opencart\System\Engine\Controller {
 			$url .= '&order=ASC';
 		}
 
+		// Sort
 		$data['sort_name'] = $this->url->link('localisation/stock_status.list', 'user_token=' . $this->session->data['user_token'] . '&sort=name' . $url);
 
 		$url = '';
@@ -148,8 +146,10 @@ class StockStatus extends \Opencart\System\Engine\Controller {
 			$url .= '&order=' . $this->request->get['order'];
 		}
 
+		// Total Stock Statuses
 		$stock_status_total = $this->model_localisation_stock_status->getTotalStockStatuses();
 
+		// Pagination
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $stock_status_total,
 			'page'  => $page,
@@ -212,6 +212,7 @@ class StockStatus extends \Opencart\System\Engine\Controller {
 			$data['stock_status_id'] = 0;
 		}
 
+		// Languages
 		$this->load->model('localisation/language');
 
 		$data['languages'] = $this->model_localisation_language->getLanguages();
@@ -219,7 +220,7 @@ class StockStatus extends \Opencart\System\Engine\Controller {
 		if (isset($this->request->get['stock_status_id'])) {
 			$this->load->model('localisation/stock_status');
 
-			$data['stock_status'] = $this->model_localisation_stock_status->getDescriptions($this->request->get['stock_status_id']);
+			$data['stock_status'] = $this->model_localisation_stock_status->getDescriptions((int)$this->request->get['stock_status_id']);
 		} else {
 			$data['stock_status'] = [];
 		}
@@ -245,19 +246,27 @@ class StockStatus extends \Opencart\System\Engine\Controller {
 			$json['error']['warning'] = $this->language->get('error_permission');
 		}
 
-		foreach ($this->request->post['stock_status'] as $language_id => $value) {
+		$required = [
+			'stock_status_id' => 0,
+			'stock_status'    => []
+		];
+
+		$post_info = $this->request->post + $required;
+
+		foreach ($post_info['stock_status'] as $language_id => $value) {
 			if (!oc_validate_length($value['name'], 3, 32)) {
 				$json['error']['name_' . $language_id] = $this->language->get('error_name');
 			}
 		}
 
 		if (!$json) {
+			// Stock Status
 			$this->load->model('localisation/stock_status');
 
-			if (!$this->request->post['stock_status_id']) {
-				$json['stock_status_id'] = $this->model_localisation_stock_status->addStockStatus($this->request->post);
+			if (!$post_info['stock_status_id']) {
+				$json['stock_status_id'] = $this->model_localisation_stock_status->addStockStatus($post_info);
 			} else {
-				$this->model_localisation_stock_status->editStockStatus($this->request->post['stock_status_id'], $this->request->post);
+				$this->model_localisation_stock_status->editStockStatus($post_info['stock_status_id'], $post_info);
 			}
 
 			$json['success'] = $this->language->get('text_success');
@@ -278,7 +287,7 @@ class StockStatus extends \Opencart\System\Engine\Controller {
 		$json = [];
 
 		if (isset($this->request->post['selected'])) {
-			$selected = $this->request->post['selected'];
+			$selected = (array)$this->request->post['selected'];
 		} else {
 			$selected = [];
 		}
@@ -287,9 +296,11 @@ class StockStatus extends \Opencart\System\Engine\Controller {
 			$json['error'] = $this->language->get('error_permission');
 		}
 
+		// Product
 		$this->load->model('catalog/product');
 
 		foreach ($selected as $stock_status_id) {
+			// Total Products
 			$product_total = $this->model_catalog_product->getTotalProductsByStockStatusId($stock_status_id);
 
 			if ($product_total) {
@@ -298,6 +309,7 @@ class StockStatus extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Stock Status
 			$this->load->model('localisation/stock_status');
 
 			foreach ($selected as $stock_status_id) {

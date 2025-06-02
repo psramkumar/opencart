@@ -48,6 +48,10 @@ class Length {
 	 * @param int   $to
 	 *
 	 * @return float
+	 *
+	 * @example
+	 *
+	 * $length = $this->length->convert($value, $from, $to);
 	 */
 	public function convert(float $value, int $from, int $to): float {
 		if ($from == $to) {
@@ -73,11 +77,15 @@ class Length {
 	 * Format
 	 *
 	 * @param float  $value
-	 * @param int    $length_class_id
+	 * @param int    $length_class_id primary key of the length class record
 	 * @param string $decimal_point
 	 * @param string $thousand_point
 	 *
 	 * @return string
+	 *
+	 * @example
+	 *
+	 * $length = $this->length->format($value, $length_class_id, $decimal_point, $thousand_point);
 	 */
 	public function format(float $value, int $length_class_id, string $decimal_point = '.', string $thousand_point = ','): string {
 		if (isset($this->lengths[$length_class_id])) {
@@ -88,11 +96,15 @@ class Length {
 	}
 
 	/**
-	 * getUnit
+	 * Get Unit
 	 *
-	 * @param int $length_class_id
+	 * @param int $length_class_id primary key of the length class record
 	 *
 	 * @return string
+	 *
+	 * @example
+	 *
+	 * $unit = $this->length->getUnit($length_class_id);
 	 */
 	public function getUnit(int $length_class_id): string {
 		if (isset($this->lengths[$length_class_id])) {

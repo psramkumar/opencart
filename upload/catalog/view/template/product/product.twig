@@ -27,39 +27,44 @@
         {% endif %}
         <div class="col-sm">
           <h1>{{ heading_title }}</h1>
-          <ul class="list-unstyled">
+          <ul class="list-unstyled mb-1">
             {% if manufacturer %}
-              <li>{{ text_manufacturer }} <a href="{{ manufacturers }}">{{ manufacturer }}</a></li>
+              <li>{{ text_manufacturer }}: <strong><a href="{{ manufacturers }}">{{ manufacturer }}</a></strong></li>
             {% endif %}
-            <li>{{ text_model }} {{ model }}</li>
+            <li>{{ text_model }}: <strong>{{ model }}</strong></li>
+            {% for product_code in product_codes %}
+              <li>{{ product_code.code }}: <strong>{{ product_code.value }}</strong></li>
+            {% endfor %}
             {% if reward %}
-              <li>{{ text_reward }} {{ reward }}</li>
+              <li>{{ text_reward }}: <strong>{{ reward }}</strong></li>
             {% endif %}
-            <li>{{ text_stock }} {{ stock }}</li>
+            <li>{{ text_stock }}: <strong><span class="text-{% if stock %}success{% else %}danger{% endif %}">{{ stock_status }}</span></strong></li>
           </ul>
           {% if review_status %}
             <div class="rating">
-              <p>
-                {% for i in 1..5 %}
-                  {% if rating < i %}
-                    <span class="fa-stack"><i class="fa-regular fa-star fa-stack-1x"></i></span>
-                  {% else %}
-                    <span class="fa-stack"><i class="fa-solid fa-star fa-stack-1x"></i><i class="fa-regular fa-star fa-stack-1x"></i></span>
-                  {% endif %}
-                {% endfor %}
-                <a href="#" onclick="$('a[href=\'#tab-review\']').tab('show'); return false;">{{ text_reviews }}</a> / <a href="#" onclick="$('a[href=\'#tab-review\']').tab('show'); return false;">{{ text_write }}</a></p>
+              {% for i in 1..5 %}
+                {% if rating < i %}
+                  <span class="fa-stack"><i class="fa-regular fa-star fa-stack-1x"></i></span>
+                {% else %}
+                  <span class="fa-stack"><i class="fa-solid fa-star fa-stack-1x"></i><i class="fa-regular fa-star fa-stack-1x"></i></span>
+                {% endif %}
+              {% endfor %}
             </div>
           {% endif %}
           {% if price %}
             <ul class="list-unstyled">
               {% if not special %}
-                <li><h2><span class="price-new">{{ price }}</span></h2></li>
+                <li>
+                  <h2><span class="price-new"><x-currency code="{{ currency }}" amount="{{ price }}"></x-currency></span></h2>
+                </li>
               {% else %}
-                <li><span class="price-old">{{ price }}</span></li>
-                <li><h2><span class="price-new">{{ special }}</span></h2></li>
+                <li><span class="price-old"><x-currency code="{{ currency }}" amount="{{ price }}"></x-currency></span></li>
+                <li>
+                  <h2><span class="price-new"><x-currency code="{{ currency }}" amount="{{ special }}"></x-currency></span></h2>
+                </li>
               {% endif %}
               {% if tax %}
-                <li>{{ text_tax }} {{ tax }}</li>
+                <li>{{ text_tax }} <x-currency code="{{ currency }}" amount="{{ tax }}"></x-currency></li>
               {% endif %}
               {% if points %}
                 <li>{{ text_points }} {{ points }}</li>
@@ -69,15 +74,15 @@
                   <hr>
                 </li>
                 {% for discount in discounts %}
-                  <li>{{ discount.quantity }}{{ text_discount }}{{ discount.price }}</li>
+                  <li>{{ discount.quantity }}{{ text_discount }}<x-currency code="{{ currency }}" amount="{{ discount.price }}"></x-currency></li>
                 {% endfor %}
               {% endif %}
             </ul>
           {% endif %}
           <form method="post" data-oc-toggle="ajax">
             <div class="btn-group">
-              <button type="submit" formaction="{{ wishlist_add }}" data-bs-toggle="tooltip" class="btn btn-light" title="{{ button_wishlist }}"><i class="fa-solid fa-heart"></i></button>
-              <button type="submit" formaction="{{ compare_add }}" data-bs-toggle="tooltip" class="btn btn-light" title="{{ button_compare }}"><i class="fa-solid fa-arrow-right-arrow-left"></i></button>
+              <button type="submit" formaction="{{ wishlist_add }}" data-bs-toggle="tooltip" class="btn btn-light btn-lg" title="{{ button_wishlist }}"><i class="fa-solid fa-heart"></i></button>
+              <button type="submit" formaction="{{ compare_add }}" data-bs-toggle="tooltip" class="btn btn-light btn-lg" title="{{ button_compare }}"><i class="fa-solid fa-arrow-right-arrow-left"></i></button>
             </div>
             <input type="hidden" name="product_id" value="{{ product_id }}"/>
           </form>
@@ -97,7 +102,7 @@
                           {% for option_value in option.product_option_value %}
                             <option value="{{ option_value.product_option_value_id }}">{{ option_value.name }}
                               {% if option_value.price %}
-                                ({{ option_value.price_prefix }}{{ option_value.price }})
+                                ({{ option_value.price_prefix }}<x-currency code="{{ currency }}" amount="{{ option_value.price }}"></x-currency>)
                               {% endif %}</option>
                           {% endfor %}
                         </select>
@@ -111,10 +116,12 @@
                         <div id="input-option-{{ option.product_option_id }}">
                           {% for option_value in option.product_option_value %}
                             <div class="form-check">
-                              <input type="radio" name="option[{{ option.product_option_id }}]" value="{{ option_value.product_option_value_id }}" id="input-option-value-{{ option_value.product_option_value_id }}" class="form-check-input"/> <label for="input-option-value-{{ option_value.product_option_value_id }}" class="form-check-label">{% if option_value.image %}<img src="{{ option_value.image }}" alt="{{ option_value.name }} {% if option_value.price %}{{ option_value.price_prefix }} {{ option_value.price }}{% endif %}" class="img-thumbnail"/>{% endif %}
+                              <input type="radio" name="option[{{ option.product_option_id }}]" value="{{ option_value.product_option_value_id }}" id="input-option-value-{{ option_value.product_option_value_id }}" class="form-check-input"/> <label for="input-option-value-{{ option_value.product_option_value_id }}" class="form-check-label">
+                                {% if option_value.image %}
+                                  <img src="{{ option_value.image }}" alt="{{ option_value.name }} {% if option_value.price %}{{ option_value.price_prefix }} {{ option_value.price }}{% endif %}" class="img-thumbnail"/>{% endif %}
                                 {{ option_value.name }}
                                 {% if option_value.price %}
-                                  ({{ option_value.price_prefix }}{{ option_value.price }})
+                                  ({{ option_value.price_prefix }}<x-currency code="{{ currency }}" amount="{{ option_value.price }}"></x-currency>)
                                 {% endif %}</label>
                             </div>
                           {% endfor %}
@@ -134,7 +141,7 @@
                                   <img src="{{ option_value.image }}" alt="{{ option_value.name }} {% if option_value.price %}{{ option_value.price_prefix }} {{ option_value.price }}{% endif %}" class="img-thumbnail"/>{% endif %}
                                 {{ option_value.name }}
                                 {% if option_value.price %}
-                                  ({{ option_value.price_prefix }}{{ option_value.price }})
+                                  ({{ option_value.price_prefix }}<x-currency code="{{ currency }}" amount="{{ option_value.price }}"></x-currency>)
                                 {% endif %}</label>
                             </div>
                           {% endfor %}
@@ -170,8 +177,7 @@
 
                     {% if option.type == 'date' %}
                       <div class="mb-3{% if option.required %} required{% endif %}">
-                        <label for="input-option-{{ option.product_option_id }}" class="form-label">{{ option.name }}</label>
-                        <input type="date" name="option[{{ option.product_option_id }}]" value="{{ option.value }}" id="input-option-{{ option.product_option_id }}" class="form-control"/>
+                        <label for="input-option-{{ option.product_option_id }}" class="form-label">{{ option.name }}</label> <input type="date" name="option[{{ option.product_option_id }}]" value="{{ option.value }}" id="input-option-{{ option.product_option_id }}" class="form-control"/>
                         <div id="error-option-{{ option.product_option_id }}" class="invalid-feedback"></div>
                       </div>
                     {% endif %}
@@ -198,8 +204,8 @@
               {% if subscription_plans %}
                 <hr/>
                 <h3>{{ text_subscription }}</h3>
-                <div class="mb-3 required">
-                  <select name="subscription_plan_id" id="input-subscription" class="form-select">
+                <div class="mb-3">
+                  <select name="subscription_plan_id" id="input-subscription" class="form-select" required>
                     <option value="">{{ text_select }}</option>
                     {% for subscription_plan in subscription_plans %}
                       <option value="{{ subscription_plan.subscription_plan_id }}">{{ subscription_plan.name }}</option>
@@ -273,14 +279,7 @@
           <div id="tab-review" class="tab-pane fade mb-4">{{ review }}</div>
         {% endif %}
       </div>
-      {% if products %}
-        <h3>{{ text_related }}</h3>
-        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4">
-          {% for product in products %}
-            <div class="col mb-3">{{ product }}</div>
-          {% endfor %}
-        </div>
-      {% endif %}
+      {{ related }}
       {{ content_bottom }}
     </div>
     {{ column_right }}
@@ -328,7 +327,7 @@ $('#form-product').on('submit', function(e) {
             if (json['success']) {
                 $('#alert').prepend('<div class="alert alert-success alert-dismissible"><i class="fa-solid fa-circle-check"></i> ' + json['success'] + ' <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
 
-                $('#header-cart').load('index.php?route=common/cart.info&language={{ language }}');
+                $('#cart').load('index.php?route=common/cart.info&language={{ language }}');
             }
         },
         error: function(xhr, ajaxOptions, thrownError) {

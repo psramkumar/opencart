@@ -9,7 +9,7 @@ class PgSQL {
 	/**
 	 * @var mixed
 	 */
-	private $connection;
+	private $db;
 
 	/**
 	 * Constructor
@@ -20,23 +20,25 @@ class PgSQL {
 	 * @param string $database
 	 * @param string $port
 	 */
-	public function __construct(string $hostname, string $username, string $password, string $database, string $port = '') {
-		if (!$port) {
+	public function __construct(array $option = []) {
+		if (isset($option['port'])) {
+			$port = $option['port'];
+		} else {
 			$port = '5432';
 		}
 
 		try {
-			$pg = @pg_connect('host=' . $hostname . ' port=' . $port . ' user=' . $username . ' password=' . $password . ' dbname=' . $database . ' options=\'--client_encoding=UTF8\' ');
+			$pg = @pg_connect('host=' . $option['hostname'] . ' port=' . $port . ' user=' . $option['username'] . ' password=' . $option['password'] . ' dbname=' . $option['database'] . ' options=\'--client_encoding=UTF8\' ');
 		} catch (\Exception $e) {
 			throw new \Exception('Error: Could not make a database link using ' . $username . '@' . $hostname);
 		}
 
 		if ($pg) {
-			$this->connection = $pg;
-			pg_query($this->connection, "SET CLIENT_ENCODING TO 'UTF8'");
+			$this->db = $pg;
+			pg_query($this->db, "SET CLIENT_ENCODING TO 'UTF8'");
 
 			// Sync PHP and DB time zones
-			pg_query($this->connection, "SET TIMEZONE = '" . $this->escape(date('P')) . "'");
+			pg_query($this->db, "SET TIMEZONE = '" . $this->escape(date('P')) . "'");
 		}
 	}
 
@@ -48,10 +50,10 @@ class PgSQL {
 	 * @return \stdClass
 	 */
 	public function query(string $sql): \stdClass {
-		$resource = pg_query($this->connection, $sql);
+		$resource = pg_query($this->db, $sql);
 
 		if ($resource === false) {
-			throw new \Exception('Error: ' . pg_last_error($this->connection) . '<br/>' . $sql);
+			throw new \Exception('Error: ' . pg_last_error($this->db) . '<br/>' . $sql);
 		}
 
 		$data = [];
@@ -78,20 +80,20 @@ class PgSQL {
 	 * @return string
 	 */
 	public function escape(string $value): string {
-		return pg_escape_string($this->connection, $value);
+		return pg_escape_string($this->db, $value);
 	}
 
 	/**
-	 * countAffected
+	 * Count Affected
 	 *
 	 * @return int
 	 */
 	public function countAffected(): int {
-		return pg_affected_rows($this->connection);
+		return pg_affected_rows($this->db);
 	}
 
 	/**
-	 * getLastId
+	 * Get Last Id
 	 *
 	 * @return int
 	 */
@@ -102,12 +104,12 @@ class PgSQL {
 	}
 
 	/**
-	 * isConnected
+	 * Is Connected
 	 *
 	 * @return bool
 	 */
 	public function isConnected(): bool {
-		return pg_connection_status($this->connection) == PGSQL_CONNECTION_OK;
+		return pg_connection_status($this->db) == PGSQL_CONNECTION_OK;
 	}
 
 	/**
@@ -116,10 +118,10 @@ class PgSQL {
 	 * Closes the DB connection when this object is destroyed.
 	 */
 	public function __destruct() {
-		if ($this->connection) {
-			pg_close($this->connection);
+		if ($this->db) {
+			pg_close($this->db);
 
-			$this->connection = null;
+			$this->db = null;
 		}
 	}
 }

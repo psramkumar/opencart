@@ -7,6 +7,8 @@ namespace Opencart\Catalog\Controller\Tool;
  */
 class Upload extends \Opencart\System\Engine\Controller {
 	/**
+	 * Index
+	 *
 	 * @return void
 	 */
 	public function index(): void {
@@ -73,7 +75,7 @@ class Upload extends \Opencart\System\Engine\Controller {
 
 			move_uploaded_file($this->request->files['file']['tmp_name'], DIR_UPLOAD . $file);
 
-			// Hide the uploaded file name so people cannot link to it directly.
+			// Hide the uploaded file name, so people cannot link to it directly.
 			$this->load->model('tool/upload');
 
 			$json['code'] = $this->model_tool_upload->addUpload($filename, $file);

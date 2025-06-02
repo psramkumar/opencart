@@ -3,13 +3,18 @@ namespace Opencart\Catalog\Controller\Common;
 /**
  * Class Column Right
  *
+ * Can be called from $this->load->controller('common/column_right');
+ *
  * @package Opencart\Catalog\Controller\Common
  */
 class ColumnRight extends \Opencart\System\Engine\Controller {
 	/**
+	 * Index
+	 *
 	 * @return string
 	 */
 	public function index(): string {
+		// Layout
 		$this->load->model('design/layout');
 
 		if (isset($this->request->get['route'])) {
@@ -20,6 +25,7 @@ class ColumnRight extends \Opencart\System\Engine\Controller {
 
 		$layout_id = 0;
 
+		// Category
 		if ($route == 'product/category' && isset($this->request->get['path'])) {
 			$this->load->model('catalog/category');
 
@@ -28,22 +34,32 @@ class ColumnRight extends \Opencart\System\Engine\Controller {
 			$layout_id = $this->model_catalog_category->getLayoutId((int)end($path));
 		}
 
+		// Product
 		if ($route == 'product/product' && isset($this->request->get['product_id'])) {
 			$this->load->model('catalog/product');
 
 			$layout_id = $this->model_catalog_product->getLayoutId((int)$this->request->get['product_id']);
 		}
 
+		// Manufacturer
 		if ($route == 'product/manufacturer.info' && isset($this->request->get['manufacturer_id'])) {
 			$this->load->model('catalog/manufacturer');
 
 			$layout_id = $this->model_catalog_manufacturer->getLayoutId((int)$this->request->get['manufacturer_id']);
 		}
 
+		// Information
 		if ($route == 'information/information' && isset($this->request->get['information_id'])) {
 			$this->load->model('catalog/information');
 
 			$layout_id = $this->model_catalog_information->getLayoutId((int)$this->request->get['information_id']);
+		}
+
+		// Blog
+		if ($route == 'cms/blog' && isset($this->request->get['topic_id'])) {
+			$this->load->model('cms/topic');
+
+			$layout_id = $this->model_cms_topic->getLayoutId((int)$this->request->get['topic_id']);
 		}
 
 		if ($route == 'cms/blog.info' && isset($this->request->get['article_id'])) {
@@ -60,6 +76,7 @@ class ColumnRight extends \Opencart\System\Engine\Controller {
 			$layout_id = $this->config->get('config_layout_id');
 		}
 
+		// Extension
 		$this->load->model('setting/module');
 
 		$data['modules'] = [];

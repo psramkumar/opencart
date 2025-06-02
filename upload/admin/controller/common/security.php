@@ -3,6 +3,8 @@ namespace Opencart\Admin\Controller\Common;
 /**
  * Class Security
  *
+ * Can be loaded using $this->load->controller('common/security');
+ *
  * @package Opencart\Admin\Controller\Common
  */
 class Security extends \Opencart\System\Engine\Controller {
@@ -14,7 +16,7 @@ class Security extends \Opencart\System\Engine\Controller {
 	public function index(): string {
 		$this->load->language('common/security');
 
-		$data['list'] = $this->controller_common_security->getList();
+		$data['list'] = $this->load->controller('common/security.getList');
 
 		$data['user_token'] = $this->session->data['user_token'];
 
@@ -29,11 +31,11 @@ class Security extends \Opencart\System\Engine\Controller {
 	public function list(): void {
 		$this->load->language('common/security');
 
-		$this->response->setOutput($this->controller_common_security->getList());
+		$this->response->setOutput($this->load->controller('common/security.getList'));
 	}
 
 	/**
-	 * getList
+	 * Get List
 	 *
 	 * @return string
 	 */
@@ -81,7 +83,7 @@ class Security extends \Opencart\System\Engine\Controller {
 			$data['storage_delete'] = '';
 		}
 
-		// Check admin directory ia renamed
+		// Check admin directory is renamed
 		$path = DIR_OPENCART . 'admin/';
 
 		if (DIR_APPLICATION == $path) {
@@ -255,7 +257,6 @@ class Security extends \Opencart\System\Engine\Controller {
 				mkdir($base_new, 0777);
 			}
 
-			// Copy the
 			$total = count($files);
 			$limit = 200;
 
@@ -318,7 +319,7 @@ class Security extends \Opencart\System\Engine\Controller {
 					$lines = file($file);
 
 					foreach ($lines as $line_id => $line) {
-						if (strpos($line, 'define(\'DIR_STORAGE') !== false) {
+						if (str_contains($line, 'define(\'DIR_STORAGE')) {
 							$output .= 'define(\'DIR_STORAGE\', \'' . $base_new . '\');' . "\n";
 						} else {
 							$output .= $line;
@@ -357,7 +358,7 @@ class Security extends \Opencart\System\Engine\Controller {
 		}
 
 		if (isset($this->request->get['name'])) {
-			$name = preg_replace('[^a-zA-Z0-9]', '', basename(html_entity_decode(trim((string)$this->request->get['name']), ENT_QUOTES, 'UTF-8')));
+			$name = preg_replace('/[^a-zA-Z0-9]/', '', basename(html_entity_decode(trim((string)$this->request->get['name']), ENT_QUOTES, 'UTF-8')));
 		} else {
 			$name = 'admin';
 		}
@@ -397,7 +398,7 @@ class Security extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
-			// 1.  // 1. We need to copy the files, as rename cannot be used on any directory, the executing script is running under
+			// 1. We need to copy the files, as rename cannot be used on any directory, the executing script is running under
 			$files = [];
 
 			// Make path into an array
@@ -408,7 +409,7 @@ class Security extends \Opencart\System\Engine\Controller {
 				$next = array_shift($directory);
 
 				foreach (glob(rtrim($next, '/') . '/{*,.[!.]*,..?*}', GLOB_BRACE) as $file) {
-					// If directory add to path array
+					// If directory, add to path array
 					if (is_dir($file)) {
 						$directory[] = $file;
 					}
@@ -423,7 +424,7 @@ class Security extends \Opencart\System\Engine\Controller {
 				mkdir($base_new, 0777);
 			}
 
-			// 3. split the file copies into chunks.
+			// 3. Split the file copies into chunks.
 			$total = count($files);
 			$limit = 200;
 
@@ -496,7 +497,7 @@ class Security extends \Opencart\System\Engine\Controller {
 
 				$this->session->data['success'] = $this->language->get('text_admin_success');
 
-				// 6. redirect to the new admin
+				// 6. Redirect to the new admin
 				$json['redirect'] = str_replace('&amp;', '&', substr(HTTP_SERVER, 0, -6) . $name . '/index.php?route=common/login');
 			}
 		}

@@ -7,6 +7,8 @@ namespace Opencart\Catalog\Controller\Account;
  */
 class Download extends \Opencart\System\Engine\Controller {
 	/**
+	 * Index
+	 *
 	 * @return void
 	 */
 	public function index(): void {
@@ -18,7 +20,7 @@ class Download extends \Opencart\System\Engine\Controller {
 			$page = 1;
 		}
 
-		if (!$this->customer->isLogged() || (!isset($this->request->get['customer_token']) || !isset($this->session->data['customer_token']) || ($this->request->get['customer_token'] != $this->session->data['customer_token']))) {
+		if (!$this->load->controller('account/login.validate')) {
 			$this->session->data['redirect'] = $this->url->link('account/download', 'language=' . $this->config->get('config_language'));
 
 			$this->response->redirect($this->url->link('account/login', 'language=' . $this->config->get('config_language'), true));
@@ -45,6 +47,7 @@ class Download extends \Opencart\System\Engine\Controller {
 
 		$limit = 10;
 
+		// Downloads
 		$data['downloads'] = [];
 
 		$this->load->model('account/download');
@@ -75,17 +78,17 @@ class Download extends \Opencart\System\Engine\Controller {
 				}
 
 				$data['downloads'][] = [
-					'order_id'   => $result['order_id'],
 					'date_added' => date($this->language->get('date_format_short'), strtotime($result['date_added'])),
-					'name'       => $result['name'],
 					'size'       => round(substr($size, 0, strpos($size, '.') + 4), 2) . $suffix[$i],
 					'href'       => $this->url->link('account/download.download', 'language=' . $this->config->get('config_language') . '&customer_token=' . $this->session->data['customer_token'] . '&download_id=' . $result['download_id'])
-				];
+				] + $result;
 			}
 		}
 
+		// Total Downloads
 		$download_total = $this->model_account_download->getTotalDownloads();
 
+		// Pagination
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $download_total,
 			'page'  => $page,
@@ -119,12 +122,13 @@ class Download extends \Opencart\System\Engine\Controller {
 			$download_id = 0;
 		}
 
-		if (!$this->customer->isLogged() || (!isset($this->request->get['customer_token']) || !isset($this->session->data['customer_token']) || ($this->request->get['customer_token'] != $this->session->data['customer_token']))) {
+		if (!$this->load->controller('account/login.validate')) {
 			$this->session->data['redirect'] = $this->url->link('account/download', 'language=' . $this->config->get('config_language'));
 
 			$this->response->redirect($this->url->link('account/login', 'language=' . $this->config->get('config_language'), true));
 		}
 
+		// Download
 		$this->load->model('account/download');
 
 		$download_info = $this->model_account_download->getDownload($download_id);

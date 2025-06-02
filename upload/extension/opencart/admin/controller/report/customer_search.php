@@ -61,6 +61,7 @@ class CustomerSearch extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Setting
 			$this->load->model('setting/setting');
 
 			$this->model_setting_setting->editSetting('report_customer_search', $this->request->post);
@@ -140,6 +141,7 @@ class CustomerSearch extends \Opencart\System\Engine\Controller {
 			$page = 1;
 		}
 
+		// Search
 		$data['searches'] = [];
 
 		$filter_data = [
@@ -152,9 +154,13 @@ class CustomerSearch extends \Opencart\System\Engine\Controller {
 			'limit'             => $this->config->get('config_pagination')
 		];
 
+		// Extension
 		$this->load->model('extension/opencart/report/customer');
+
+		// Category
 		$this->load->model('catalog/category');
 
+		// Total Searches
 		$search_total = $this->model_extension_opencart_report_customer->getTotalCustomerSearches($filter_data);
 
 		$results = $this->model_extension_opencart_report_customer->getCustomerSearches($filter_data);
@@ -206,6 +212,7 @@ class CustomerSearch extends \Opencart\System\Engine\Controller {
 			$url .= '&filter_ip=' . $this->request->get['filter_ip'];
 		}
 
+		// Pagination
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $search_total,
 			'page'  => $page,

@@ -65,6 +65,7 @@ class Fixer extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Setting
 			$this->load->model('setting/setting');
 
 			$this->model_setting_setting->editSetting('currency_fixer', $this->request->post);
@@ -90,7 +91,6 @@ class Fixer extends \Opencart\System\Engine\Controller {
 			curl_setopt($curl, CURLOPT_URL, 'http://data.fixer.io/api/latest?access_key=' . $this->config->get('currency_fixer_api'));
 			curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
 			curl_setopt($curl, CURLOPT_HEADER, false);
-			curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
 			curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 30);
 			curl_setopt($curl, CURLOPT_TIMEOUT, 30);
 
@@ -116,6 +116,7 @@ class Fixer extends \Opencart\System\Engine\Controller {
 					$currencies[$key] = $value;
 				}
 
+				// Currency
 				$this->load->model('localisation/currency');
 
 				$results = $this->model_localisation_currency->getCurrencies();

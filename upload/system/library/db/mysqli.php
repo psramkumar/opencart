@@ -9,7 +9,7 @@ class MySQLi {
 	/**
 	 * @var ?\mysqli
 	 */
-	private ?\mysqli $connection;
+	private ?\mysqli $db;
 
 	/**
 	 * Constructor
@@ -23,67 +23,86 @@ class MySQLi {
 	 * @param string $ssl_cert
 	 * @param string $ssl_ca
 	 */
-	public function __construct(string $hostname, string $username, string $password, string $database, int $port = 0, string $ssl_key = '', string $ssl_cert = '', string $ssl_ca = '') {
-		if (!$port) {
-			$port = 3306;
+	public function __construct(array $option = []) {
+		$required = [
+			'engine',
+			'hostname',
+			'username',
+			'database',
+			'port'
+
+		];
+
+		foreach ($required as $key) {
+			if (empty($option[$key])) {
+				throw new \Exception('Error: Database ' . $key . ' required!');
+			}
 		}
 
 		// MSQL SSL connection
 		$temp_ssl_key_file = '';
 
-		if ($ssl_key) {
+		if (!empty($option['ssl_key'])) {
 			$temp_ssl_key_file = tempnam(sys_get_temp_dir(), 'mysqli_key_');
 
 			$handle = fopen($temp_ssl_key_file, 'w');
 
-			fwrite($handle, $ssl_key);
+			fwrite($handle, (string)$option['ssl_key']);
 
 			fclose($handle);
 		}
 
 		$temp_ssl_cert_file = '';
 
-		if ($ssl_cert) {
+		if (!empty($option['ssl_cert'])) {
 			$temp_ssl_cert_file = tempnam(sys_get_temp_dir(), 'mysqli_cert_');
 
 			$handle = fopen($temp_ssl_cert_file, 'w');
 
-			fwrite($handle, $ssl_cert);
+			fwrite($handle, (string)$option['ssl_cert']);
 
 			fclose($handle);
 		}
 
 		$temp_ssl_ca_file = '';
 
-		if ($ssl_ca) {
+		if (!empty($option['ssl_ca'])) {
 			$temp_ssl_ca_file = tempnam(sys_get_temp_dir(), 'mysqli_ca_');
 
 			$handle = fopen($temp_ssl_ca_file, 'w');
 
-			fwrite($handle, '-----BEGIN CERTIFICATE-----' . PHP_EOL . $ssl_ca . PHP_EOL . '-----END CERTIFICATE-----');
+			fwrite($handle, '-----BEGIN CERTIFICATE-----' . PHP_EOL . (string)$option['ssl_ca'] . PHP_EOL . '-----END CERTIFICATE-----');
 
 			fclose($handle);
 		}
 
-		try {
-			$this->connection = mysqli_init() ?: null;
+		$this->db = new \mysqli();
 
-			if ($temp_ssl_key_file || $temp_ssl_cert_file || $temp_ssl_ca_file) {
-				$this->connection->ssl_set($temp_ssl_key_file, $temp_ssl_cert_file, $temp_ssl_ca_file, null, null);
-				$this->connection->real_connect($hostname, $username, $password, $database, $port, null, MYSQLI_CLIENT_SSL);
-			} else {
-				$this->connection->real_connect($hostname, $username, $password, $database, $port, null);
-			}
+		// Check PHP version to use appropriate method
+		if (version_compare(PHP_VERSION, '8.1.0', '>=')) {
+			mysqli_report(MYSQLI_REPORT_STRICT | MYSQLI_REPORT_ERROR);
+		} else {
+			$this->db->report_mode = MYSQLI_REPORT_STRICT | MYSQLI_REPORT_ERROR;
+		}
 
-			$this->connection->set_charset('utf8mb4');
+		if ($temp_ssl_key_file || $temp_ssl_cert_file || $temp_ssl_ca_file) {
+			$this->db->ssl_set($temp_ssl_key_file, $temp_ssl_cert_file, $temp_ssl_ca_file, null, null);
+
+			$ssl = MYSQLI_CLIENT_SSL;
+		} else {
+			$ssl = 0;
+		}
+
+		if (@$this->db->real_connect($option['hostname'], $option['username'], $option['password'], $option['database'], $option['port'], null, $ssl)) {
+			$this->db->set_charset('utf8mb4');
 
 			$this->query("SET SESSION sql_mode = 'NO_ZERO_IN_DATE,NO_ENGINE_SUBSTITUTION'");
 			$this->query("SET FOREIGN_KEY_CHECKS = 0");
 
 			// Sync PHP and DB time zones
 			$this->query("SET `time_zone` = '" . $this->escape(date('P')) . "'");
-		} catch (\mysqli_sql_exception $e) {
-			throw new \Exception('Error: Could not make a database link using ' . $username . '@' . $hostname . '!<br/>Message: ' . $e->getMessage());
+		} else {
+			throw new \Exception('Error: Could not connect to the database please make sure the database server, username and password is correct!');
 		}
 	}
 
@@ -96,7 +115,7 @@ class MySQLi {
 	 */
 	public function query(string $sql) {
 		try {
-			$query = $this->connection->query($sql);
+			$query = $this->db->query($sql);
 
 			if ($query instanceof \mysqli_result) {
 				$data = [];
@@ -119,7 +138,7 @@ class MySQLi {
 				return true;
 			}
 		} catch (\mysqli_sql_exception $e) {
-			throw new \Exception('Error: ' . $this->connection->error . '<br/>Error No: ' . $this->connection->errno . '<br/>' . $sql);
+			throw new \Exception('Error: ' . $this->db->error . '<br/>Error No: ' . $this->db->errno . '<br/>' . $sql);
 		}
 	}
 
@@ -131,34 +150,34 @@ class MySQLi {
 	 * @return string
 	 */
 	public function escape(string $value): string {
-		return $this->connection->real_escape_string($value);
+		return $this->db->real_escape_string($value);
 	}
 
 	/**
-	 * countAffected
+	 * Count Affected
 	 *
 	 * @return int
 	 */
 	public function countAffected(): int {
-		return $this->connection->affected_rows;
+		return $this->db->affected_rows;
 	}
 
 	/**
-	 * getLastId
+	 * Get Last Id
 	 *
 	 * @return int
 	 */
 	public function getLastId(): int {
-		return $this->connection->insert_id;
+		return $this->db->insert_id;
 	}
 
 	/**
-	 * isConnected
+	 * Is Connected
 	 *
 	 * @return bool
 	 */
 	public function isConnected(): bool {
-		return $this->connection !== null;
+		return $this->db !== null;
 	}
 
 	/**
@@ -167,10 +186,10 @@ class MySQLi {
 	 * Closes the DB connection when this object is destroyed.
 	 */
 	public function __destruct() {
-		if ($this->connection) {
-			$this->connection->close();
+		if ($this->db) {
+			$this->db->close();
 
-			$this->connection = null;
+			$this->db = null;
 		}
 	}
 }

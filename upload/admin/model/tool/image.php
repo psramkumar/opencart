@@ -3,6 +3,8 @@ namespace Opencart\Admin\Model\Tool;
 /**
  * Class Image
  *
+ * Can be loaded using $this->load->model('tool/image');
+ *
  * @package Opencart\Admin\Model\Tool
  */
 class Image extends \Opencart\System\Engine\Model {
@@ -16,6 +18,12 @@ class Image extends \Opencart\System\Engine\Model {
 	 * @throws \Exception
 	 *
 	 * @return string
+	 *
+	 * @example
+	 *
+	 * $this->load->model('tool/image');
+	 *
+	 * $placeholder = $this->model_tool_image->resize($filename, $width, $height);
 	 */
 	public function resize(string $filename, int $width, int $height): string {
 		$filename = html_entity_decode($filename, ENT_QUOTES, 'UTF-8');

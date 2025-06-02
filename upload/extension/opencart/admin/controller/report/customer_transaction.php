@@ -61,6 +61,7 @@ class CustomerTransaction extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Setting
 			$this->load->model('setting/setting');
 
 			$this->model_setting_setting->editSetting('report_customer_transaction', $this->request->post);
@@ -128,6 +129,7 @@ class CustomerTransaction extends \Opencart\System\Engine\Controller {
 			$page = 1;
 		}
 
+		// Transactions
 		$data['customers'] = [];
 
 		$filter_data = [
@@ -138,21 +140,19 @@ class CustomerTransaction extends \Opencart\System\Engine\Controller {
 			'limit'             => $this->config->get('config_pagination')
 		];
 
+		// Extension
 		$this->load->model('extension/opencart/report/customer_transaction');
 
+		// Total Customers
 		$customer_total = $this->model_extension_opencart_report_customer_transaction->getTotalTransactions($filter_data);
 
 		$results = $this->model_extension_opencart_report_customer_transaction->getTransactions($filter_data);
 
 		foreach ($results as $result) {
 			$data['customers'][] = [
-				'customer'       => $result['customer'],
-				'email'          => $result['email'],
-				'customer_group' => $result['customer_group'],
-				'status'         => ($result['status'] ? $this->language->get('text_enabled') : $this->language->get('text_disabled')),
-				'total'          => $this->currency->format($result['total'], $this->config->get('config_currency')),
-				'edit'           => $this->url->link('customer/customer.form', 'user_token=' . $this->session->data['user_token'] . '&customer_id=' . $result['customer_id'])
-			];
+				'status' => $result['status'],
+				'edit'   => $this->url->link('customer/customer.form', 'user_token=' . $this->session->data['user_token'] . '&customer_id=' . $result['customer_id'])
+			] + $result;
 		}
 
 		$url = '';
@@ -169,6 +169,7 @@ class CustomerTransaction extends \Opencart\System\Engine\Controller {
 			$url .= '&filter_customer=' . urlencode($this->request->get['filter_customer']);
 		}
 
+		// Pagination
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $customer_total,
 			'page'  => $page,
@@ -181,6 +182,8 @@ class CustomerTransaction extends \Opencart\System\Engine\Controller {
 		$data['filter_date_start'] = $filter_date_start;
 		$data['filter_date_end'] = $filter_date_end;
 		$data['filter_customer'] = $filter_customer;
+
+		$data['currency'] = $this->config->get('config_currency');
 
 		$data['user_token'] = $this->session->data['user_token'];
 

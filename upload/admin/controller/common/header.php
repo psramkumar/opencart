@@ -3,6 +3,8 @@ namespace Opencart\Admin\Controller\Common;
 /**
  * Class Header
  *
+ * Can be loaded using $this->load->controller('common/header');
+ *
  * @package Opencart\Admin\Controller\Common
  */
 class Header extends \Opencart\System\Engine\Controller {
@@ -21,8 +23,6 @@ class Header extends \Opencart\System\Engine\Controller {
 		$data['keywords'] = $this->document->getKeywords();
 
 		// Hard coding css so they can be replaced via the event's system.
-		$data['bootstrap'] = 'view/stylesheet/bootstrap.css';
-		$data['icons'] = 'view/stylesheet/fonts/fontawesome/css/all.min.css';
 		$data['stylesheet'] = 'view/stylesheet/stylesheet.css';
 
 		// Hard coding scripts so they can be replaced via the event's system.
@@ -69,6 +69,7 @@ class Header extends \Opencart\System\Engine\Controller {
 
 			$data['profile'] = $this->url->link('user/profile', 'user_token=' . $this->session->data['user_token']);
 
+			// User
 			$this->load->model('user/user');
 
 			$user_info = $this->model_user_user->getUser($this->user->getId());
@@ -81,6 +82,7 @@ class Header extends \Opencart\System\Engine\Controller {
 				$data['lastname'] = '';
 			}
 
+			// Image
 			$this->load->model('tool/image');
 
 			if ($user_info['image'] && is_file(DIR_IMAGE . html_entity_decode($user_info['image'], ENT_QUOTES, 'UTF-8'))) {
@@ -90,23 +92,16 @@ class Header extends \Opencart\System\Engine\Controller {
 			}
 
 			// Stores
-			$data['stores'] = [];
+			$stores = [];
 
-			$data['stores'][] = [
+			$stores[] = [
 				'name' => $this->config->get('config_name'),
 				'href' => HTTP_CATALOG
 			];
 
 			$this->load->model('setting/store');
 
-			$results = $this->model_setting_store->getStores();
-
-			foreach ($results as $result) {
-				$data['stores'][] = [
-					'name' => $result['name'],
-					'href' => $result['url']
-				];
-			}
+			$data['stores'] = array_merge($stores, $this->model_setting_store->getStores());
 
 			$data['logout'] = $this->url->link('common/logout', 'user_token=' . $this->session->data['user_token']);
 		}

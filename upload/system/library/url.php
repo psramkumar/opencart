@@ -18,6 +18,13 @@ class Url {
 	 * @var string
 	 */
 	private string $url;
+	private string $scheme;
+	private string $host;
+	private int $port;
+	private string $path;
+	private string $query;
+	private string $fragment;
+
 	/**
 	 * @var array<int, object>
 	 */
@@ -30,6 +37,12 @@ class Url {
 	 */
 	public function __construct(string $url) {
 		$this->url = $url;
+
+		$parts = parse_url($url);
+
+		foreach ($parts as $key => $value) {
+			$this->{$key} = $value;
+		}
 	}
 
 	/**
@@ -72,6 +85,10 @@ class Url {
 		foreach ($this->rewrite as $rewrite) {
 			$url = $rewrite->rewrite($url);
 		}
+
+		// See https://stackoverflow.com/questions/78729429/403-forbidden-when-url-contains-get-with-encoded-question-mark-unsafeallow3f
+		// https://github.com/opencart/opencart/issues/14202
+		$url = str_replace('%3F', '?', $url);
 
 		if (!$js) {
 			return str_replace('&', '&amp;', $url);

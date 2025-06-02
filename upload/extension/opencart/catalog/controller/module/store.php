@@ -25,6 +25,7 @@ class Store extends \Opencart\System\Engine\Controller {
 
 			$data['store_id'] = $this->config->get('config_store_id');
 
+			// Stores
 			$data['stores'] = [];
 
 			$data['stores'][] = [

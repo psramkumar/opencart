@@ -72,7 +72,7 @@ class Location extends \Opencart\System\Engine\Controller {
 	 *
 	 * @return string
 	 */
-	protected function getList(): string {
+	public function getList(): string {
 		if (isset($this->request->get['sort'])) {
 			$sort = (string)$this->request->get['sort'];
 		} else {
@@ -107,6 +107,7 @@ class Location extends \Opencart\System\Engine\Controller {
 
 		$data['action'] = $this->url->link('localisation/location.list', 'user_token=' . $this->session->data['user_token'] . $url);
 
+		// Locations
 		$data['locations'] = [];
 
 		$filter_data = [
@@ -121,12 +122,7 @@ class Location extends \Opencart\System\Engine\Controller {
 		$results = $this->model_localisation_location->getLocations($filter_data);
 
 		foreach ($results as $result) {
-			$data['locations'][] = [
-				'location_id' => $result['location_id'],
-				'name'        => $result['name'],
-				'address'     => $result['address'],
-				'edit'        => $this->url->link('localisation/location.form', 'user_token=' . $this->session->data['user_token'] . '&location_id=' . $result['location_id'] . $url)
-			];
+			$data['locations'][] = ['edit' => $this->url->link('localisation/location.form', 'user_token=' . $this->session->data['user_token'] . '&location_id=' . $result['location_id'] . $url)] + $result;
 		}
 
 		$url = '';
@@ -137,6 +133,7 @@ class Location extends \Opencart\System\Engine\Controller {
 			$url .= '&order=ASC';
 		}
 
+		// Sorts
 		$data['sort_name'] = $this->url->link('localisation/location.list', 'user_token=' . $this->session->data['user_token'] . '&sort=name' . $url);
 		$data['sort_address'] = $this->url->link('localisation/location.list', 'user_token=' . $this->session->data['user_token'] . '&sort=address' . $url);
 
@@ -150,8 +147,10 @@ class Location extends \Opencart\System\Engine\Controller {
 			$url .= '&order=' . $this->request->get['order'];
 		}
 
+		// Total Locations
 		$location_total = $this->model_localisation_location->getTotalLocations();
 
+		// Pagination
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $location_total,
 			'page'  => $page,
@@ -208,14 +207,15 @@ class Location extends \Opencart\System\Engine\Controller {
 		$data['save'] = $this->url->link('localisation/location.save', 'user_token=' . $this->session->data['user_token']);
 		$data['back'] = $this->url->link('localisation/location', 'user_token=' . $this->session->data['user_token'] . $url);
 
+		// Location
 		if (isset($this->request->get['location_id'])) {
 			$this->load->model('localisation/location');
 
-			$location_info = $this->model_localisation_location->getLocation($this->request->get['location_id']);
+			$location_info = $this->model_localisation_location->getLocation((int)$this->request->get['location_id']);
 		}
 
-		if (isset($this->request->get['location_id'])) {
-			$data['location_id'] = (int)$this->request->get['location_id'];
+		if (!empty($location_info)) {
+			$data['location_id'] = $location_info['location_id'];
 		} else {
 			$data['location_id'] = 0;
 		}
@@ -244,6 +244,7 @@ class Location extends \Opencart\System\Engine\Controller {
 			$data['telephone'] = '';
 		}
 
+		// Image
 		if (!empty($location_info)) {
 			$data['image'] = $location_info['image'];
 		} else {
@@ -295,25 +296,39 @@ class Location extends \Opencart\System\Engine\Controller {
 			$json['error']['warning'] = $this->language->get('error_permission');
 		}
 
-		if (!oc_validate_length($this->request->post['name'], 3, 32)) {
+		$required = [
+			'location_id' => 0,
+			'name'        => '',
+			'address'     => '',
+			'geocode'     => '',
+			'telephone'   => '',
+			'image'       => '',
+			'open'        => '',
+			'comment'     => ''
+		];
+
+		$post_info = $this->request->post + $required;
+
+		if (!oc_validate_length($post_info['name'], 3, 32)) {
 			$json['error']['name'] = $this->language->get('error_name');
 		}
 
-		if (!oc_validate_length($this->request->post['address'], 3, 128)) {
+		if (!oc_validate_length($post_info['address'], 3, 128)) {
 			$json['error']['address'] = $this->language->get('error_address');
 		}
 
-		if (!oc_validate_length($this->request->post['telephone'], 3, 32)) {
+		if (!oc_validate_length($post_info['telephone'], 3, 32)) {
 			$json['error']['telephone'] = $this->language->get('error_telephone');
 		}
 
 		if (!$json) {
+			// Location
 			$this->load->model('localisation/location');
 
-			if (!$this->request->post['location_id']) {
-				$json['location_id'] = $this->model_localisation_location->addLocation($this->request->post);
+			if (!$post_info['location_id']) {
+				$json['location_id'] = $this->model_localisation_location->addLocation($post_info);
 			} else {
-				$this->model_localisation_location->editLocation($this->request->post['location_id'], $this->request->post);
+				$this->model_localisation_location->editLocation($post_info['location_id'], $post_info);
 			}
 
 			$json['success'] = $this->language->get('text_success');
@@ -334,7 +349,7 @@ class Location extends \Opencart\System\Engine\Controller {
 		$json = [];
 
 		if (isset($this->request->post['selected'])) {
-			$selected = $this->request->post['selected'];
+			$selected = (array)$this->request->post['selected'];
 		} else {
 			$selected = [];
 		}
@@ -344,6 +359,7 @@ class Location extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Location
 			$this->load->model('localisation/location');
 
 			foreach ($selected as $location_id) {

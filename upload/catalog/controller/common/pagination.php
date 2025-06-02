@@ -3,13 +3,24 @@ namespace Opencart\Catalog\Controller\Common;
 /**
  * Class Pagination
  *
+ * Can be loaded using $this->load->controller('common/pagination', $setting);
+ *
+ * @example
+ *
+ * $setting = [
+ *     'total' => 10,
+ *     'page'  => 1,
+ *     'limit' => 10,
+ *     'url'   => ''
+ * ];
+ *
  * @package Opencart\Catalog\Controller\Common
  */
 class Pagination extends \Opencart\System\Engine\Controller {
 	/**
 	 * Index
 	 *
-	 * @param array<string, mixed> $setting
+	 * @param array<string, mixed> $setting array of filters
 	 *
 	 * @return string
 	 */

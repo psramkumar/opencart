@@ -3,17 +3,39 @@ namespace Opencart\Admin\Model\Marketing;
 /**
  * Class Marketing
  *
+ * Can be loaded using $this->load->model('marketing/marketing');
+ *
  * @package Opencart\Admin\Model\Marketing
  */
 class Marketing extends \Opencart\System\Engine\Model {
 	/**
 	 * Add Marketing
 	 *
-	 * @param array<string, mixed> $data
+	 * Create a new marketing record in the database.
 	 *
-	 * @return int
+	 * @param array<string, mixed> $data array of data
+	 *
+	 * @return int returns the primary key of the new coupon record
+	 *
+	 * @example
+	 *
+	 * $marketing_data = [
+	 *     'name'        => 'Marketing Name',
+	 *     'description' => 'Marketing Description',
+	 *     'code'        => ''
+	 * ];
+	 *
+	 * $this->load->model('marketing/marketing');
+	 *
+	 * $marketing_id = $this->model_marketing_marketing->addMarketing($marketing_data);
 	 */
 	public function addMarketing(array $data): int {
+		$marketing_data = [
+			'name'        => 'Marketing Name',
+			'description' => 'Marketing Description',
+			'code'        => ''
+		];
+
 		$this->db->query("INSERT INTO `" . DB_PREFIX . "marketing` SET `name` = '" . $this->db->escape((string)$data['name']) . "', `description` = '" . $this->db->escape((string)$data['description']) . "', `code` = '" . $this->db->escape((string)$data['code']) . "', `date_added` = NOW()");
 
 		return $this->db->getLastId();
@@ -22,10 +44,24 @@ class Marketing extends \Opencart\System\Engine\Model {
 	/**
 	 * Edit Marketing
 	 *
-	 * @param int                  $marketing_id
-	 * @param array<string, mixed> $data
+	 * Edit marketing record in the database.
+	 *
+	 * @param int                  $marketing_id primary key of the marketing record
+	 * @param array<string, mixed> $data         array of data
 	 *
 	 * @return void
+	 *
+	 * @example
+	 *
+	 * $marketing_data = [
+	 *     'name'        => 'Marketing Name',
+	 *     'description' => 'Marketing Description',
+	 *     'code'        => ''
+	 * ];
+	 *
+	 * $this->load->model('marketing/marketing');
+	 *
+	 * $this->model_marketing_marketing->editMarketing($marketing_id, $marketing_data);
 	 */
 	public function editMarketing(int $marketing_id, array $data): void {
 		$this->db->query("UPDATE `" . DB_PREFIX . "marketing` SET `name` = '" . $this->db->escape((string)$data['name']) . "', `description` = '" . $this->db->escape((string)$data['description']) . "', `code` = '" . $this->db->escape((string)$data['code']) . "' WHERE `marketing_id` = '" . (int)$marketing_id . "'");
@@ -34,9 +70,17 @@ class Marketing extends \Opencart\System\Engine\Model {
 	/**
 	 * Delete Marketing
 	 *
-	 * @param int $marketing_id
+	 * Delete marketing record in the database.
+	 *
+	 * @param int $marketing_id primary key of the marketing record
 	 *
 	 * @return void
+	 *
+	 * @example
+	 *
+	 * $this->load->model('marketing/marketing');
+	 *
+	 * $this->model_marketing_marketing->deleteMarketing($marketing_id);
 	 */
 	public function deleteMarketing(int $marketing_id): void {
 		$this->db->query("DELETE FROM `" . DB_PREFIX . "marketing` WHERE `marketing_id` = '" . (int)$marketing_id . "'");
@@ -47,9 +91,17 @@ class Marketing extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Marketing
 	 *
-	 * @param int $marketing_id
+	 * Get the record of the marketing record in the database.
 	 *
-	 * @return array<string, mixed>
+	 * @param int $marketing_id primary key of the marketing record
+	 *
+	 * @return array<string, mixed> marketing record that has marketing ID
+	 *
+	 * @example
+	 *
+	 * $this->load->model('marketing/marketing');
+	 *
+	 * $marketing_info = $this->model_marketing_marketing->getMarketing($marketing_id);
 	 */
 	public function getMarketing(int $marketing_id): array {
 		$query = $this->db->query("SELECT DISTINCT * FROM `" . DB_PREFIX . "marketing` WHERE `marketing_id` = '" . (int)$marketing_id . "'");
@@ -63,6 +115,12 @@ class Marketing extends \Opencart\System\Engine\Model {
 	 * @param string $code
 	 *
 	 * @return array<string, mixed>
+	 *
+	 * @example
+	 *
+	 * $this->load->model('marketing/marketing');
+	 *
+	 * $marketing_info = $this->model_marketing_marketing->getMarketingByCode($code);
 	 */
 	public function getMarketingByCode(string $code): array {
 		$query = $this->db->query("SELECT DISTINCT * FROM `" . DB_PREFIX . "marketing` WHERE `code` = '" . $this->db->escape($code) . "'");
@@ -73,9 +131,28 @@ class Marketing extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Marketing(s)
 	 *
-	 * @param array<string, mixed> $data
+	 * Get the record of the marketing records in the database.
 	 *
-	 * @return array<int, array<string, mixed>>
+	 * @param array<string, mixed> $data array of filters
+	 *
+	 * @return array<int, array<string, mixed>> marketing records
+	 *
+	 * @example
+	 *
+	 * $filter_data = [
+	 *     'filter_name'      => 'Marketing Name',
+	 *     'filter_code'      => '',
+	 *     'filter_date_from' => '2021-01-01',
+	 *     'filter_date_to'   => '2021-01-31',
+	 *     'sort'             => 'm.name',
+	 *     'order'            => 'DESC',
+	 *     'start'            => 0,
+	 *     'limit'            => 10
+	 * ];
+	 *
+	 * $this->load->model('marketing/marketing');
+	 *
+	 * $results = $this->model_marketing_marketing->getMarketings($filter_data);
 	 */
 	public function getMarketings(array $data = []): array {
 		$implode = [];
@@ -148,9 +225,28 @@ class Marketing extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Total Marketing(s)
 	 *
-	 * @param array<string, mixed> $data
+	 * Get the total number of total marketing records in the database.
 	 *
-	 * @return int
+	 * @param array<string, mixed> $data array of filters
+	 *
+	 * @return int total number of marketing records
+	 *
+	 * @example
+	 *
+	 * $filter_data = [
+	 *     'filter_name'      => 'Marketing Name',
+	 *     'filter_code'      => '',
+	 *     'filter_date_from' => '2021-01-01',
+	 *     'filter_date_to'   => '2021-01-31',
+	 *     'sort'             => 'm.name',
+	 *     'order'            => 'DESC',
+	 *     'start'            => 0,
+	 *     'limit'            => 10
+	 * ];
+	 *
+	 * $this->load->model('marketing/marketing');
+	 *
+	 * $marketing_total = $this->model_marketing_marketing->getTotalMarketings($filter_data);
 	 */
 	public function getTotalMarketings(array $data = []): int {
 		$sql = "SELECT COUNT(*) AS `total` FROM `" . DB_PREFIX . "marketing`";
@@ -185,9 +281,17 @@ class Marketing extends \Opencart\System\Engine\Model {
 	/**
 	 * Delete Marketing Reports
 	 *
-	 * @param int $marketing_id
+	 * Delete marketing report records in the database.
+	 *
+	 * @param int $marketing_id primary key of the marketing record
 	 *
 	 * @return void
+	 *
+	 * @example
+	 *
+	 * $this->load->model('marketing/marketing');
+	 *
+	 * $this->model_marketing_marketing->deleteReports($marketing_id);
 	 */
 	public function deleteReports(int $marketing_id): void {
 		$this->db->query("DELETE FROM `" . DB_PREFIX . "marketing_report` WHERE `marketing_id` = '" . (int)$marketing_id . "'");
@@ -196,11 +300,19 @@ class Marketing extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Reports
 	 *
-	 * @param int $marketing_id
+	 * Get the record of the marketing report records in the database.
+	 *
+	 * @param int $marketing_id primary key of the marketing record
 	 * @param int $start
 	 * @param int $limit
 	 *
-	 * @return array<int, array<string, mixed>>
+	 * @return array<int, array<string, mixed>> report records that have marketing ID
+	 *
+	 * @example
+	 *
+	 * $this->load->model('marketing/marketing');
+	 *
+	 * $results = $this->model_marketing_marketing->getReports($marketing_id, $start, $limit);
 	 */
 	public function getReports(int $marketing_id, int $start = 0, int $limit = 10): array {
 		if ($start < 0) {
@@ -219,9 +331,17 @@ class Marketing extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Total Reports
 	 *
-	 * @param int $marketing_id
+	 * Get the total number of total marketing report records in the database.
 	 *
-	 * @return int
+	 * @param int $marketing_id primary key of the marketing record
+	 *
+	 * @return int total number of report records
+	 *
+	 * @example
+	 *
+	 * $this->load->model('marketing/marketing');
+	 *
+	 * $report_total = $this->model_marketing_marketing->getTotalReports($marketing_id);
 	 */
 	public function getTotalReports(int $marketing_id): int {
 		$query = $this->db->query("SELECT COUNT(*) AS `total` FROM `" . DB_PREFIX . "marketing_report` WHERE `marketing_id` = '" . (int)$marketing_id . "'");

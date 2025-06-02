@@ -117,7 +117,7 @@ class Marketing extends \Opencart\System\Engine\Controller {
 	 *
 	 * @return string
 	 */
-	protected function getList(): string {
+	public function getList(): string {
 		if (isset($this->request->get['filter_name'])) {
 			$filter_name = $this->request->get['filter_name'];
 		} else {
@@ -194,6 +194,7 @@ class Marketing extends \Opencart\System\Engine\Controller {
 
 		$data['marketings'] = [];
 
+		// Marketing
 		$filter_data = [
 			'filter_name'      => $filter_name,
 			'filter_code'      => $filter_code,
@@ -211,14 +212,9 @@ class Marketing extends \Opencart\System\Engine\Controller {
 
 		foreach ($results as $result) {
 			$data['marketings'][] = [
-				'marketing_id' => $result['marketing_id'],
-				'name'         => $result['name'],
-				'code'         => $result['code'],
-				'clicks'       => $result['clicks'],
-				'orders'       => $result['orders'],
-				'date_added'   => date($this->language->get('date_format_short'), strtotime($result['date_added'])),
-				'edit'         => $this->url->link('marketing/marketing.form', 'user_token=' . $this->session->data['user_token'] . '&marketing_id=' . $result['marketing_id'] . $url)
-			];
+				'date_added' => date($this->language->get('date_format_short'), strtotime($result['date_added'])),
+				'edit'       => $this->url->link('marketing/marketing.form', 'user_token=' . $this->session->data['user_token'] . '&marketing_id=' . $result['marketing_id'] . $url)
+			] + $result;
 		}
 
 		$url = '';
@@ -245,6 +241,7 @@ class Marketing extends \Opencart\System\Engine\Controller {
 			$url .= '&order=ASC';
 		}
 
+		// Sorts
 		$data['sort_name'] = $this->url->link('marketing/marketing.list', 'user_token=' . $this->session->data['user_token'] . '&sort=m.name' . $url);
 		$data['sort_code'] = $this->url->link('marketing/marketing.list', 'user_token=' . $this->session->data['user_token'] . '&sort=m.code' . $url);
 		$data['sort_date_added'] = $this->url->link('marketing/marketing.list', 'user_token=' . $this->session->data['user_token'] . '&sort=m.date_added' . $url);
@@ -277,6 +274,7 @@ class Marketing extends \Opencart\System\Engine\Controller {
 
 		$marketing_total = $this->model_marketing_marketing->getTotalMarketings($filter_data);
 
+		// Pagination
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $marketing_total,
 			'page'  => $page,
@@ -355,8 +353,8 @@ class Marketing extends \Opencart\System\Engine\Controller {
 			$marketing_info = $this->model_marketing_marketing->getMarketing($this->request->get['marketing_id']);
 		}
 
-		if (isset($this->request->get['marketing_id'])) {
-			$data['marketing_id'] = (int)$this->request->get['marketing_id'];
+		if (!empty($marketing_info)) {
+			$data['marketing_id'] = $marketing_info['marketing_id'];
 		} else {
 			$data['marketing_id'] = 0;
 		}
@@ -406,27 +404,37 @@ class Marketing extends \Opencart\System\Engine\Controller {
 			$json['error']['warning'] = $this->language->get('error_permission');
 		}
 
-		if (!oc_validate_length($this->request->post['name'], 1, 32)) {
+		$required = [
+			'marketing_id' => 0,
+			'name'         => '',
+			'description'  => '',
+			'code'         => ''
+		];
+
+		$post_info = $this->request->post + $required;
+
+		if (!oc_validate_length($post_info['name'], 1, 32)) {
 			$json['error']['name'] = $this->language->get('error_name');
 		}
 
-		if (!$this->request->post['code']) {
+		if (!$post_info['code']) {
 			$json['error']['code'] = $this->language->get('error_code');
 		}
 
+		// Marketing
 		$this->load->model('marketing/marketing');
 
-		$marketing_info = $this->model_marketing_marketing->getMarketingByCode($this->request->post['code']);
+		$marketing_info = $this->model_marketing_marketing->getMarketingByCode($post_info['code']);
 
-		if ($marketing_info && (!isset($this->request->post['marketing_id']) || ($this->request->post['marketing_id'] != $marketing_info['marketing_id']))) {
+		if ($marketing_info && (!$post_info['marketing_id'] || ($post_info['marketing_id'] != $marketing_info['marketing_id']))) {
 			$json['error']['code'] = $this->language->get('error_exists');
 		}
 
 		if (!$json) {
-			if (!$this->request->post['marketing_id']) {
-				$json['marketing_id'] = $this->model_marketing_marketing->addMarketing($this->request->post);
+			if (!$post_info['marketing_id']) {
+				$json['marketing_id'] = $this->model_marketing_marketing->addMarketing($post_info);
 			} else {
-				$this->model_marketing_marketing->editMarketing($this->request->post['marketing_id'], $this->request->post);
+				$this->model_marketing_marketing->editMarketing($post_info['marketing_id'], $post_info);
 			}
 
 			$json['success'] = $this->language->get('text_success');
@@ -447,7 +455,7 @@ class Marketing extends \Opencart\System\Engine\Controller {
 		$json = [];
 
 		if (isset($this->request->post['selected'])) {
-			$selected = $this->request->post['selected'];
+			$selected = (array)$this->request->post['selected'];
 		} else {
 			$selected = [];
 		}
@@ -503,8 +511,13 @@ class Marketing extends \Opencart\System\Engine\Controller {
 
 		$data['reports'] = [];
 
+		// Marketing
 		$this->load->model('marketing/marketing');
+
+		// Customer
 		$this->load->model('customer/customer');
+
+		// Setting
 		$this->load->model('setting/store');
 
 		$results = $this->model_marketing_marketing->getReports($marketing_id, ($page - 1) * $limit, $limit);
@@ -530,8 +543,10 @@ class Marketing extends \Opencart\System\Engine\Controller {
 			];
 		}
 
+		// Total Reports
 		$report_total = $this->model_marketing_marketing->getTotalReports($marketing_id);
 
+		// Pagination
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $report_total,
 			'page'  => $page,
@@ -564,6 +579,7 @@ class Marketing extends \Opencart\System\Engine\Controller {
 			$filter_code = '';
 		}
 
+		// Marketing
 		$filter_data = [
 			'filter_name' => $filter_name,
 			'filter_code' => $filter_code,

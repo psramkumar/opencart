@@ -1,7 +1,9 @@
 <?php
 namespace Opencart\Catalog\Model\Localisation;
 /**
- * Class ReturnReason
+ * Class Return Reason
+ *
+ * Can be called using $this->load->model('localisation/return_reason');
  *
  * @package Opencart\Catalog\Model\Localisation
  */
@@ -9,9 +11,17 @@ class ReturnReason extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Return Reasons
 	 *
-	 * @param array<string, mixed> $data
+	 * Get the record of the return reason records in the database.
 	 *
-	 * @return array<int, array<string, mixed>>
+	 * @param array<string, mixed> $data array of filters
+	 *
+	 * @return array<int, array<string, mixed>> return reason records
+	 *
+	 * @example
+	 *
+	 * $this->load->model('localisation/return_reason');
+	 *
+	 * $return_reasons = $this->model_localisation_return_reason->getReturnReasons();
 	 */
 	public function getReturnReasons(array $data = []): array {
 		$sql = "SELECT * FROM `" . DB_PREFIX . "return_reason` WHERE `language_id` = '" . (int)$this->config->get('config_language_id') . "' ORDER BY `name`";

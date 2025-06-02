@@ -3,19 +3,22 @@ namespace Opencart\Catalog\Model\Extension\Opencart\Shipping;
 /**
  * Class Free
  *
+ * Can be called from $this->load->model('extension/opencart/shipping/free');
+ *
  * @package Opencart\Catalog\Model\Extension\Opencart\Shipping
  */
 class Free extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Quote
 	 *
-	 * @param array<string, mixed> $address
+	 * @param array<string, mixed> $address array of data
 	 *
 	 * @return array<string, mixed>
 	 */
 	public function getQuote(array $address): array {
 		$this->load->language('extension/opencart/shipping/free');
 
+		// Geo Zone
 		$this->load->model('localisation/geo_zone');
 
 		$results = $this->model_localisation_geo_zone->getGeoZone((int)$this->config->get('shipping_free_geo_zone_id'), (int)$address['country_id'], (int)$address['zone_id']);
@@ -42,7 +45,7 @@ class Free extends \Opencart\System\Engine\Model {
 				'name'         => $this->language->get('text_description'),
 				'cost'         => 0.00,
 				'tax_class_id' => 0,
-				'text'         => $this->currency->format(0.00, $this->session->data['currency'])
+				'text'         => 0.00
 			];
 
 			$method_data = [

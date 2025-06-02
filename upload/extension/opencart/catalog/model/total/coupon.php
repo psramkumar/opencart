@@ -3,6 +3,8 @@ namespace Opencart\Catalog\Model\Extension\Opencart\Total;
 /**
  * Class Coupon
  *
+ * Can be called from $this->load->model('extension/opencart/total/coupon');
+ *
  * @package Opencart\Catalog\Model\Extension\Opencart\Total
  */
 class Coupon extends \Opencart\System\Engine\Model {
@@ -16,6 +18,7 @@ class Coupon extends \Opencart\System\Engine\Model {
 	 * @return void
 	 */
 	public function getTotal(array &$totals, array &$taxes, float &$total): void {
+		// Coupon
 		if (isset($this->session->data['coupon'])) {
 			$this->load->language('extension/opencart/total/coupon', 'coupon');
 
@@ -54,7 +57,7 @@ class Coupon extends \Opencart\System\Engine\Model {
 					}
 
 					if ($status) {
-						if ($coupon_info['type'] == 'F') {
+						if ($coupon_info['type'] == 'F' && $sub_total) {
 							$discount = $coupon_info['discount'] * ($product['total'] / $sub_total);
 						} elseif ($coupon_info['type'] == 'P') {
 							$discount = $product['total'] / 100 * $coupon_info['discount'];
@@ -127,6 +130,7 @@ class Coupon extends \Opencart\System\Engine\Model {
 		}
 
 		if ($code) {
+			// Coupon
 			$this->load->model('marketing/coupon');
 
 			$status = true;
@@ -134,6 +138,7 @@ class Coupon extends \Opencart\System\Engine\Model {
 			$coupon_info = $this->model_marketing_coupon->getCouponByCode($code);
 
 			if ($coupon_info) {
+				// Total Coupons
 				$coupon_total = $this->model_marketing_coupon->getTotalHistories($coupon_info['coupon_id']);
 
 				if ($coupon_info['uses_total'] > 0 && ($coupon_total >= $coupon_info['uses_total'])) {
@@ -141,6 +146,7 @@ class Coupon extends \Opencart\System\Engine\Model {
 				}
 
 				if ($order_info['customer_id']) {
+					// Total Customers
 					$customer_total = $this->model_marketing_coupon->getTotalHistoriesByCustomerId($coupon_info['coupon_id'], $order_info['customer_id']);
 
 					if ($coupon_info['uses_customer'] > 0 && ($customer_total >= $coupon_info['uses_customer'])) {
@@ -169,8 +175,9 @@ class Coupon extends \Opencart\System\Engine\Model {
 	 * @return void
 	 */
 	public function unconfirm(array $order_info): void {
+		// Histories
 		$this->load->model('marketing/coupon');
 
-		$this->model_marketing_coupon->deleteHistoryByOrderId($order_info['order_id']);
+		$this->model_marketing_coupon->deleteHistoriesByOrderId($order_info['order_id']);
 	}
 }

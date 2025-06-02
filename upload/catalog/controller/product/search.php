@@ -7,6 +7,8 @@ namespace Opencart\Catalog\Controller\Product;
  */
 class Search extends \Opencart\System\Engine\Controller {
 	/**
+	 * Index
+	 *
 	 * @return void
 	 */
 	public function index(): void {
@@ -134,8 +136,6 @@ class Search extends \Opencart\System\Engine\Controller {
 
 		$data['compare'] = $this->url->link('product/compare', 'language=' . $this->config->get('config_language'));
 
-		$this->load->model('catalog/category');
-
 		// 3 Level Category Search
 		$data['categories'] = [];
 
@@ -149,16 +149,7 @@ class Search extends \Opencart\System\Engine\Controller {
 			$categories_2 = $this->model_catalog_category->getCategories($category_1['category_id']);
 
 			foreach ($categories_2 as $category_2) {
-				$level_3_data = [];
-
-				$categories_3 = $this->model_catalog_category->getCategories($category_2['category_id']);
-
-				foreach ($categories_3 as $category_3) {
-					$level_3_data[] = [
-						'category_id' => $category_3['category_id'],
-						'name'        => $category_3['name'],
-					];
-				}
+				$level_3_data = $this->model_catalog_category->getCategories($category_2['category_id']);
 
 				$level_2_data[] = [
 					'category_id' => $category_2['category_id'],
@@ -167,11 +158,7 @@ class Search extends \Opencart\System\Engine\Controller {
 				];
 			}
 
-			$data['categories'][] = [
-				'category_id' => $category_1['category_id'],
-				'name'        => $category_1['name'],
-				'children'    => $level_2_data
-			];
+			$data['categories'][] = ['children' => $level_2_data] + $category_1;
 		}
 
 		$data['products'] = [];
@@ -189,7 +176,10 @@ class Search extends \Opencart\System\Engine\Controller {
 				'limit'               => $limit
 			];
 
+			// Products
 			$this->load->model('catalog/product');
+
+			// Image
 			$this->load->model('tool/image');
 
 			$results = $this->model_catalog_product->getProducts($filter_data);
@@ -208,35 +198,32 @@ class Search extends \Opencart\System\Engine\Controller {
 				}
 
 				if ($this->customer->isLogged() || !$this->config->get('config_customer_price')) {
-					$price = $this->currency->format($this->tax->calculate($result['price'], $result['tax_class_id'], $this->config->get('config_tax')), $this->session->data['currency']);
+					$price = $this->tax->calculate($result['price'], $result['tax_class_id'], $this->config->get('config_tax'));
 				} else {
 					$price = false;
 				}
 
 				if ((float)$result['special']) {
-					$special = $this->currency->format($this->tax->calculate($result['special'], $result['tax_class_id'], $this->config->get('config_tax')), $this->session->data['currency']);
+					$special = $this->tax->calculate($result['special'], $result['tax_class_id'], $this->config->get('config_tax'));
 				} else {
 					$special = false;
 				}
 
 				if ($this->config->get('config_tax')) {
-					$tax = $this->currency->format((float)$result['special'] ? $result['special'] : $result['price'], $this->session->data['currency']);
+					$tax = (float)$result['special'] ? $result['special'] : $result['price'];
 				} else {
 					$tax = false;
 				}
 
 				$product_data = [
-					'product_id'  => $result['product_id'],
 					'thumb'       => $this->model_tool_image->resize($image, $this->config->get('config_image_product_width'), $this->config->get('config_image_product_height')),
-					'name'        => $result['name'],
 					'description' => $description,
 					'price'       => $price,
 					'special'     => $special,
 					'tax'         => $tax,
 					'minimum'     => $result['minimum'] > 0 ? $result['minimum'] : 1,
-					'rating'      => $result['rating'],
 					'href'        => $this->url->link('product/product', 'language=' . $this->config->get('config_language') . '&product_id=' . $result['product_id'] . $url)
-				];
+				] + $result;
 
 				$data['products'][] = $this->load->controller('product/thumb', $product_data);
 			}
@@ -403,8 +390,10 @@ class Search extends \Opencart\System\Engine\Controller {
 				$url .= '&limit=' . $this->request->get['limit'];
 			}
 
+			// Total Products
 			$product_total = $this->model_catalog_product->getTotalProducts($filter_data);
 
+			// Pagination
 			$data['pagination'] = $this->load->controller('common/pagination', [
 				'total' => $product_total,
 				'page'  => $page,
@@ -414,6 +403,7 @@ class Search extends \Opencart\System\Engine\Controller {
 
 			$data['results'] = sprintf($this->language->get('text_pagination'), ($product_total) ? (($page - 1) * $limit) + 1 : 0, ((($page - 1) * $limit) > ($product_total - $limit)) ? $product_total : ((($page - 1) * $limit) + $limit), $product_total, ceil($product_total / $limit));
 
+			// Search
 			if (isset($this->request->get['search']) && $this->config->get('config_customer_search')) {
 				$this->load->model('account/search');
 

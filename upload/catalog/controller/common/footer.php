@@ -3,17 +3,23 @@ namespace Opencart\Catalog\Controller\Common;
 /**
  * Class Footer
  *
+ * Can be called from $this->load->controller('common/footer');
+ *
  * @package Opencart\Catalog\Controller\Common
  */
 class Footer extends \Opencart\System\Engine\Controller {
 	/**
+	 * Index
+	 *
 	 * @return string
 	 */
 	public function index(): string {
 		$this->load->language('common/footer');
 
+		// Articles
 		$this->load->model('cms/article');
 
+		// Total Articles
 		$article_total = $this->model_cms_article->getTotalArticles();
 
 		if ($article_total) {
@@ -22,6 +28,7 @@ class Footer extends \Opencart\System\Engine\Controller {
 			$data['blog'] = '';
 		}
 
+		// Information
 		$data['informations'] = [];
 
 		$this->load->model('catalog/information');
@@ -29,10 +36,7 @@ class Footer extends \Opencart\System\Engine\Controller {
 		$results = $this->model_catalog_information->getInformations();
 
 		foreach ($results as $result) {
-			$data['informations'][] = [
-				'title' => $result['title'],
-				'href'  => $this->url->link('information/information', 'language=' . $this->config->get('config_language') . '&information_id=' . $result['information_id'])
-			];
+			$data['informations'][] = ['href' => $this->url->link('information/information', 'language=' . $this->config->get('config_language') . '&information_id=' . $result['information_id'])] + $result;
 		}
 
 		$data['contact'] = $this->url->link('information/contact', 'language=' . $this->config->get('config_language'));
@@ -46,7 +50,6 @@ class Footer extends \Opencart\System\Engine\Controller {
 
 		$data['sitemap'] = $this->url->link('information/sitemap', 'language=' . $this->config->get('config_language'));
 		$data['manufacturer'] = $this->url->link('product/manufacturer', 'language=' . $this->config->get('config_language'));
-		$data['voucher'] = $this->url->link('checkout/voucher', 'language=' . $this->config->get('config_language'));
 
 		if ($this->config->get('config_affiliate_status')) {
 			$data['affiliate'] = $this->url->link('account/affiliate', 'language=' . $this->config->get('config_language') . (isset($this->session->data['customer_token']) ? '&customer_token=' . $this->session->data['customer_token'] : ''));
@@ -82,9 +85,7 @@ class Footer extends \Opencart\System\Engine\Controller {
 		}
 
 		$data['bootstrap'] = 'catalog/view/javascript/bootstrap/js/bootstrap.bundle.min.js';
-
 		$data['scripts'] = $this->document->getScripts('footer');
-
 		$data['cookie'] = $this->load->controller('common/cookie');
 
 		return $this->load->view('common/footer', $data);

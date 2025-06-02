@@ -8,27 +8,27 @@
   <div class="row">{{ column_left }}
     <div id="content" class="col">{{ content_top }}
       <h1>{{ heading_title }}</h1>
-      <p>{{ text_total }} <b>{{ total }}</b>.</p>
+      <p>{{ text_total }} <strong><x-currency code="{{ currency }}" amount="{{ total }}"></x-currency></strong>.</p>
       <table class="table table-bordered table-hover">
         <thead>
           <tr>
-            <td class="text-start">{{ column_date_added }}</td>
-            <td class="text-start">{{ column_description }}</td>
-            <td class="text-end">{{ column_amount }}</td>
+            <th>{{ column_date_added }}</th>
+            <th>{{ column_description }}</th>
+            <th class="text-end">{{ column_amount }}</th>
           </tr>
         </thead>
         <tbody>
           {% if transactions %}
             {% for transaction in transactions %}
               <tr>
-                <td class="text-start">{{ transaction.date_added }}</td>
-                <td class="text-start">{{ transaction.description }}</td>
-                <td class="text-end">{{ transaction.amount }}</td>
+                <td>{{ transaction.date_added }}</td>
+                <td>{{ transaction.description }}</td>
+                <td class="text-end"><x-currency code="{{ currency }}" amount="{{ transaction.amount }}"></x-currency></td>
               </tr>
             {% endfor %}
           {% else %}
             <tr>
-              <td class="text-center" colspan="5">{{ text_no_results }}</td>
+              <td class="text-center" colspan="3">{{ text_no_results }}</td>
             </tr>
           {% endif %}
         </tbody>

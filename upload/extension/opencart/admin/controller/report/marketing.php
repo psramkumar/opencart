@@ -61,6 +61,7 @@ class Marketing extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Setting
 			$this->load->model('setting/setting');
 
 			$this->model_setting_setting->editSetting('report_marketing', $this->request->post);
@@ -82,6 +83,7 @@ class Marketing extends \Opencart\System\Engine\Controller {
 
 		$data['list'] = $this->getReport();
 
+		// Order Statuses
 		$this->load->model('localisation/order_status');
 
 		$data['order_statuses'] = $this->model_localisation_order_status->getOrderStatuses();
@@ -142,6 +144,7 @@ class Marketing extends \Opencart\System\Engine\Controller {
 			'limit'                  => $this->config->get('config_pagination')
 		];
 
+		// Extension
 		$this->load->model('extension/opencart/report/marketing');
 
 		$marketing_total = $this->model_extension_opencart_report_marketing->getTotalMarketing($filter_data);
@@ -154,7 +157,7 @@ class Marketing extends \Opencart\System\Engine\Controller {
 				'code'     => $result['code'],
 				'clicks'   => $result['clicks'],
 				'orders'   => $result['orders'],
-				'total'    => $this->currency->format((float)$result['total'], $this->config->get('config_currency')),
+				'total'    => (float)$result['total'],
 				'save'     => $this->url->link('marketing/marketing/edit', 'user_token=' . $this->session->data['user_token'] . '&marketing_id=' . $result['marketing_id'])
 			];
 		}
@@ -173,6 +176,7 @@ class Marketing extends \Opencart\System\Engine\Controller {
 			$url .= '&filter_order_status_id=' . $this->request->get['filter_order_status_id'];
 		}
 
+		// Pagination
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $marketing_total,
 			'page'  => $page,
@@ -185,6 +189,8 @@ class Marketing extends \Opencart\System\Engine\Controller {
 		$data['filter_date_start'] = $filter_date_start;
 		$data['filter_date_end'] = $filter_date_end;
 		$data['filter_order_status_id'] = $filter_order_status_id;
+
+		$data['currency'] = $this->config->get('config_currency');
 
 		$data['user_token'] = $this->session->data['user_token'];
 

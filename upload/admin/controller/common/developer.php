@@ -3,6 +3,8 @@ namespace Opencart\Admin\Controller\Common;
 /**
  * Class Developer
  *
+ * Can be loaded using $this->load->controller('common/developer');
+ *
  * @package Opencart\Admin\Controller\Common
  */
 class Developer extends \Opencart\System\Engine\Controller {
@@ -36,6 +38,7 @@ class Developer extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Setting
 			$this->load->model('setting/setting');
 
 			$this->model_setting_setting->editSetting('developer', $this->request->post, 0);
@@ -141,7 +144,7 @@ class Developer extends \Opencart\System\Engine\Controller {
 				unlink($file);
 			}
 
-			$files = glob(DIR_CATALOG . 'view/theme/*/stylesheet/scss/bootstrap.scss');
+			$files = glob(DIR_CATALOG . 'view/stylesheet/scss/bootstrap.scss');
 
 			foreach ($files as $file) {
 				$file = substr($file, 0, -20) . '/bootstrap.css';
@@ -151,7 +154,7 @@ class Developer extends \Opencart\System\Engine\Controller {
 				}
 			}
 
-			$files = glob(DIR_CATALOG . 'view/theme/*/stylesheet/stylesheet.scss');
+			$files = glob(DIR_CATALOG . 'view/stylesheet/stylesheet.scss');
 
 			foreach ($files as $file) {
 				$file = substr($file, 0, -16) . '/stylesheet.css';

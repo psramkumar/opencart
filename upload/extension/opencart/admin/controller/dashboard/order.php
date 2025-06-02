@@ -65,10 +65,11 @@ class Order extends \Opencart\System\Engine\Controller {
 		$json = [];
 
 		if (!$this->user->hasPermission('modify', 'extension/opencart/dashboard/order')) {
-			$json['error']  = $this->language->get('error_permission');
+			$json['error'] = $this->language->get('error_permission');
 		}
 
 		if (!$json) {
+			// Setting
 			$this->load->model('setting/setting');
 
 			$this->model_setting_setting->editSetting('dashboard_order', $this->request->post);
@@ -92,9 +93,7 @@ class Order extends \Opencart\System\Engine\Controller {
 		$this->load->model('sale/order');
 
 		$today = $this->model_sale_order->getTotalOrders(['filter_date_added' => date('Y-m-d', strtotime('-1 day'))]);
-
 		$yesterday = $this->model_sale_order->getTotalOrders(['filter_date_added' => date('Y-m-d', strtotime('-2 day'))]);
-
 		$difference = $today - $yesterday;
 
 		if ($difference && $today) {
@@ -103,6 +102,7 @@ class Order extends \Opencart\System\Engine\Controller {
 			$data['percentage'] = 0;
 		}
 
+		// Total Orders
 		$order_total = $this->model_sale_order->getTotalOrders();
 
 		if ($order_total > 1000000000000) {

@@ -73,7 +73,7 @@ class Currency extends \Opencart\System\Engine\Controller {
 	 *
 	 * @return string
 	 */
-	protected function getList(): string {
+	public function getList(): string {
 		if (isset($this->request->get['sort'])) {
 			$sort = (string)$this->request->get['sort'];
 		} else {
@@ -120,6 +120,7 @@ class Currency extends \Opencart\System\Engine\Controller {
 
 		$data['action'] = $this->url->link('localisation/currency.list', 'user_token=' . $this->session->data['user_token'] . $url);
 
+		// Currencies
 		$data['currencies'] = [];
 
 		$filter_data = [
@@ -135,15 +136,14 @@ class Currency extends \Opencart\System\Engine\Controller {
 
 		foreach ($results as $result) {
 			$data['currencies'][] = [
-				'currency_id'   => $result['currency_id'],
-				'title'         => $result['title'] . (($result['code'] == $this->config->get('config_currency')) ? $this->language->get('text_default') : ''),
-				'code'          => $result['code'],
-				'value'         => $result['value'],
-				'status'        => $result['status'],
+				'title'         => $result['title'],
 				'date_modified' => date($this->language->get('date_format_short'), strtotime($result['date_modified'])),
 				'edit'          => $this->url->link('localisation/currency.form', 'user_token=' . $this->session->data['user_token'] . '&currency_id=' . $result['currency_id'] . $url)
-			];
+			] + $result;
 		}
+
+		// Default
+		$data['code'] = $this->config->get('config_currency');
 
 		$url = '';
 
@@ -153,6 +153,7 @@ class Currency extends \Opencart\System\Engine\Controller {
 			$url .= '&order=ASC';
 		}
 
+		// Sorts
 		$data['sort_title'] = $this->url->link('localisation/currency.list', 'user_token=' . $this->session->data['user_token'] . '&sort=title' . $url);
 		$data['sort_code'] = $this->url->link('localisation/currency.list', 'user_token=' . $this->session->data['user_token'] . '&sort=code' . $url);
 		$data['sort_value'] = $this->url->link('localisation/currency.list', 'user_token=' . $this->session->data['user_token'] . '&sort=value' . $url);
@@ -169,8 +170,10 @@ class Currency extends \Opencart\System\Engine\Controller {
 			$url .= '&order=' . $this->request->get['order'];
 		}
 
+		// Total Currencies
 		$currency_total = $this->model_localisation_currency->getTotalCurrencies();
 
+		// Pagination
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $currency_total,
 			'page'  => $page,
@@ -227,14 +230,15 @@ class Currency extends \Opencart\System\Engine\Controller {
 		$data['save'] = $this->url->link('localisation/currency.save', 'user_token=' . $this->session->data['user_token']);
 		$data['back'] = $this->url->link('localisation/currency', 'user_token=' . $this->session->data['user_token'] . $url);
 
+		// Currency
 		if (isset($this->request->get['currency_id'])) {
 			$this->load->model('localisation/currency');
 
-			$currency_info = $this->model_localisation_currency->getCurrency($this->request->get['currency_id']);
+			$currency_info = $this->model_localisation_currency->getCurrency((int)$this->request->get['currency_id']);
 		}
 
-		if (isset($this->request->get['currency_id'])) {
-			$data['currency_id'] = (int)$this->request->get['currency_id'];
+		if (!empty($currency_info)) {
+			$data['currency_id'] = $currency_info['currency_id'];
 		} else {
 			$data['currency_id'] = 0;
 		}
@@ -304,21 +308,105 @@ class Currency extends \Opencart\System\Engine\Controller {
 			$json['error']['warning'] = $this->language->get('error_permission');
 		}
 
-		if (!oc_validate_length($this->request->post['title'], 3, 32)) {
+		$required = [
+			'currency_id'   => 0,
+			'title'         => '',
+			'code'          => '',
+			'symbol_left'   => '',
+			'symbol_right'  => '',
+			'decimal_place' => 0,
+			'value'         => 0.0,
+			'status'        => 0
+		];
+
+		$post_info = $this->request->post + $required;
+
+		if (!oc_validate_length($post_info['title'], 3, 32)) {
 			$json['error']['title'] = $this->language->get('error_title');
 		}
 
-		if (oc_strlen($this->request->post['code']) != 3) {
+		if (oc_strlen($post_info['code']) != 3) {
 			$json['error']['code'] = $this->language->get('error_code');
 		}
 
-		if (!$json) {
-			$this->load->model('localisation/currency');
+		// Currency
+		$this->load->model('localisation/currency');
 
-			if (!$this->request->post['currency_id']) {
-				$json['currency_id'] = $this->model_localisation_currency->addCurrency($this->request->post);
+		$currency_info = $this->model_localisation_currency->getCurrencyByCode($post_info['code']);
+
+		if ($currency_info && (!$post_info['currency_id'] || ($currency_info['currency_id'] != $post_info['currency_id']))) {
+			$json['error']['code'] = $this->language->get('error_exists');
+		}
+
+		if (!$json) {
+			if (!$post_info['currency_id']) {
+				$json['currency_id'] = $this->model_localisation_currency->addCurrency($post_info);
 			} else {
-				$this->model_localisation_currency->editCurrency($this->request->post['currency_id'], $this->request->post);
+				$this->model_localisation_currency->editCurrency($post_info['currency_id'], $post_info);
+			}
+
+			$json['success'] = $this->language->get('text_success');
+		}
+
+		$this->response->addHeader('Content-Type: application/json');
+		$this->response->setOutput(json_encode($json));
+	}
+
+	/**
+	 * Delete
+	 *
+	 * @return void
+	 */
+	public function delete(): void {
+		$this->load->language('localisation/currency');
+
+		$json = [];
+
+		if (isset($this->request->post['selected'])) {
+			$selected = (array)$this->request->post['selected'];
+		} else {
+			$selected = [];
+		}
+
+		if (!$this->user->hasPermission('modify', 'localisation/currency')) {
+			$json['error'] = $this->language->get('error_permission');
+		}
+
+		// Currency
+		$this->load->model('localisation/currency');
+
+		// Setting
+		$this->load->model('setting/store');
+
+		// Orders
+		$this->load->model('sale/order');
+
+		foreach ($selected as $currency_id) {
+			$currency_info = $this->model_localisation_currency->getCurrency($currency_id);
+
+			if ($currency_info) {
+				if ($this->config->get('config_currency') == $currency_info['code']) {
+					$json['error'] = $this->language->get('error_default');
+				}
+
+				$store_total = $this->model_setting_store->getTotalStoresByCurrency($currency_info['code']);
+
+				if ($store_total) {
+					$json['error'] = sprintf($this->language->get('error_store'), $store_total);
+				}
+			}
+
+			// Total Orders
+			$order_total = $this->model_sale_order->getTotalOrdersByCurrencyId($currency_id);
+
+			if ($order_total) {
+				$json['error'] = sprintf($this->language->get('error_order'), $order_total);
+			}
+		}
+
+		if (!$json) {
+			foreach ($selected as $currency_id) {
+				$this->model_localisation_currency->deleteCurrency($currency_id);
 			}
 
 			$json['success'] = $this->language->get('text_success');
@@ -342,6 +430,7 @@ class Currency extends \Opencart\System\Engine\Controller {
 			$json['error'] = $this->language->get('error_permission');
 		}
 
+		// Extension
 		$this->load->model('setting/extension');
 
 		$extension_info = $this->model_setting_extension->getExtensionByCode('currency', $this->config->get('config_currency_engine'));
@@ -361,57 +450,31 @@ class Currency extends \Opencart\System\Engine\Controller {
 	}
 
 	/**
-	 * Delete
+	 * Generate
 	 *
 	 * @return void
 	 */
-	public function delete(): void {
+	public function generate(): void {
 		$this->load->language('localisation/currency');
 
 		$json = [];
-
-		if (isset($this->request->post['selected'])) {
-			$selected = $this->request->post['selected'];
-		} else {
-			$selected = [];
-		}
 
 		if (!$this->user->hasPermission('modify', 'localisation/currency')) {
 			$json['error'] = $this->language->get('error_permission');
 		}
 
-		$this->load->model('localisation/currency');
-		$this->load->model('setting/store');
-		$this->load->model('sale/order');
-
-		foreach ($selected as $currency_id) {
-			$currency_info = $this->model_localisation_currency->getCurrency($currency_id);
-
-			if ($currency_info) {
-				if ($this->config->get('config_currency') == $currency_info['code']) {
-					$json['error'] = $this->language->get('error_default');
-				}
-
-				$store_total = $this->model_setting_store->getTotalStoresByCurrency($currency_info['code']);
-
-				if ($store_total) {
-					$json['error'] = sprintf($this->language->get('error_store'), $store_total);
-				}
-			}
-
-			$order_total = $this->model_sale_order->getTotalOrdersByCurrencyId($currency_id);
-
-			if ($order_total) {
-				$json['error'] = sprintf($this->language->get('error_order'), $order_total);
-			}
-		}
-
 		if (!$json) {
-			foreach ($selected as $currency_id) {
-				$this->model_localisation_currency->deleteCurrency($currency_id);
-			}
+			$file = DIR_CATALOG . 'view/data/localisation/currency.json';
 
-			$json['success'] = $this->language->get('text_success');
+			$this->load->model('localisation/currency');
+
+			$output = json_encode($this->model_localisation_currency->getCurrencies());
+
+			if (file_put_contents($file, $output)) {
+				$json['success'] = $this->language->get('text_success');
+			} else {
+				$json['error'] = $this->language->get('error_file');
+			}
 		}
 
 		$this->response->addHeader('Content-Type: application/json');

@@ -136,6 +136,7 @@ class Comment extends \Opencart\System\Engine\Controller {
 
 		$data['comments'] = [];
 
+		// Article
 		$filter_data = [
 			'filter_keyword'   => $filter_keyword,
 			'filter_article'   => $filter_article,
@@ -167,19 +168,15 @@ class Comment extends \Opencart\System\Engine\Controller {
 			}
 
 			$data['comments'][] = [
-				'article_comment_id' => $result['article_comment_id'],
-				'article'            => $article,
-				'article_edit'       => $this->url->link('cms/article.form', 'user_token=' . $this->session->data['user_token'] . '&article_id=' . $result['article_id']),
-				'author'             => $result['author'],
-				'customer_edit'      => $result['customer_id'] ? $this->url->link('customer/customer.form', 'user_token=' . $this->session->data['user_token'] . '&customer_id=' . $result['customer_id']) : '',
-				'comment'            => nl2br($result['comment']),
-				'rating'             => $result['rating'],
-				'status'             => $result['status'],
-				'date_added'         => date($this->language->get('datetime_format'), strtotime($result['date_added'])),
-				'approve'            => $approve,
-				'spam'               => $this->url->link('cms/comment.spam', 'user_token=' . $this->session->data['user_token'] . '&article_comment_id=' . $result['article_comment_id'] . $url),
-				'delete'             => $this->url->link('cms/comment.delete', 'user_token=' . $this->session->data['user_token'] . '&article_comment_id=' . $result['article_comment_id'] . $url)
-			];
+				'article'       => $article,
+				'article_edit'  => $this->url->link('cms/article.form', 'user_token=' . $this->session->data['user_token'] . '&article_id=' . $result['article_id']),
+				'customer_edit' => $result['customer_id'] ? $this->url->link('customer/customer.form', 'user_token=' . $this->session->data['user_token'] . '&customer_id=' . $result['customer_id']) : '',
+				'comment'       => nl2br($result['comment']),
+				'date_added'    => date($this->language->get('datetime_format'), strtotime($result['date_added'])),
+				'approve'       => $approve,
+				'spam'          => $this->url->link('cms/comment.spam', 'user_token=' . $this->session->data['user_token'] . '&article_comment_id=' . $result['article_comment_id'] . $url),
+				'delete'        => $this->url->link('cms/comment.delete', 'user_token=' . $this->session->data['user_token'] . '&article_comment_id=' . $result['article_comment_id'] . $url)
+			] + $result;
 		}
 
 		$url = '';
@@ -208,8 +205,10 @@ class Comment extends \Opencart\System\Engine\Controller {
 			$url .= '&filter_date_to=' . $this->request->get['filter_date_to'];
 		}
 
+		// Total Comments
 		$comment_total = $this->model_cms_article->getTotalComments($filter_data);
 
+		// Pagination
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $comment_total,
 			'page'  => $page,
@@ -233,7 +232,7 @@ class Comment extends \Opencart\System\Engine\Controller {
 		$json = [];
 
 		if (isset($this->request->post['selected'])) {
-			$selected = $this->request->post['selected'];
+			$selected = (array)$this->request->post['selected'];
 		} else {
 			$selected = [];
 		}
@@ -247,7 +246,10 @@ class Comment extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Article
 			$this->load->model('cms/article');
+
+			// Customer
 			$this->load->model('customer/customer');
 
 			foreach ($selected as $article_comment_id) {
@@ -291,7 +293,7 @@ class Comment extends \Opencart\System\Engine\Controller {
 		$json = [];
 
 		if (isset($this->request->post['selected'])) {
-			$selected = $this->request->post['selected'];
+			$selected = (array)$this->request->post['selected'];
 		} else {
 			$selected = [];
 		}
@@ -305,7 +307,10 @@ class Comment extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Article
 			$this->load->model('cms/article');
+
+			// Customer
 			$this->load->model('customer/customer');
 
 			foreach ($selected as $article_comment_id) {
@@ -346,7 +351,7 @@ class Comment extends \Opencart\System\Engine\Controller {
 		$json = [];
 
 		if (isset($this->request->post['selected'])) {
-			$selected = $this->request->post['selected'];
+			$selected = (array)$this->request->post['selected'];
 		} else {
 			$selected = [];
 		}
@@ -360,6 +365,7 @@ class Comment extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Article
 			$this->load->model('cms/article');
 
 			foreach ($selected as $article_comment_id) {
@@ -396,6 +402,7 @@ class Comment extends \Opencart\System\Engine\Controller {
 		if (!$json) {
 			$limit = 100;
 
+			// Article
 			$filter_data = [
 				'sort'  => 'date_added',
 				'order' => 'ASC',
@@ -426,6 +433,7 @@ class Comment extends \Opencart\System\Engine\Controller {
 				$this->model_cms_article->editCommentRating($result['article_id'], $result['article_comment_id'], $like - $dislike);
 			}
 
+			// Total Comments
 			$comment_total = $this->model_cms_article->getTotalComments();
 
 			$start = ($page - 1) * $limit;

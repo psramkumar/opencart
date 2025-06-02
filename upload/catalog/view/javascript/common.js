@@ -22,6 +22,19 @@ function getURLVar(key) {
     }
 }
 
+// Observe
++function($) {
+    $.fn.observe = function(callback) {
+        observer = new MutationObserver(callback);
+
+        observer.observe($(this)[0], {
+            characterData: false,
+            childList: true,
+            attributes: false
+        });
+    };
+}(jQuery);
+
 $(document).ready(function() {
     // Tooltip
     var oc_tooltip = function() {
@@ -41,193 +54,83 @@ $(document).ready(function() {
         $('.tooltip').remove();
     });
 
-    var oc_alert = function() {
+    $('#alert').observe(function() {
         window.setTimeout(function() {
-            $('.alert-dismissible').fadeTo(3000, 0, function() {
+            $('#alert .alert-dismissible').fadeTo(3000, 0, function() {
                 $(this).remove();
             });
         }, 3000);
-    }
-
-    $(document).on('click', 'button', oc_alert);
-    $(document).on('click', 'change', oc_alert);
+    });
 });
 
+// Button
 $(document).ready(function() {
-    // Currency
-    $('#form-currency .dropdown-item').on('click', function(e) {
-        e.preventDefault();
+    +function($) {
+        $.fn.button = function(state) {
+            return this.each(function() {
+                let element = this;
 
-        $('#form-currency input[name=\'code\']').val($(this).attr('href'));
+                if (state == 'loading') {
+                    this.html = $(element).html();
 
-        $('#form-currency').submit();
-    });
-
-    // Menu
-    $('#menu .dropdown-menu').each(function() {
-        var menu = $('#menu').offset();
-        var dropdown = $(this).parent().offset();
-
-        var i = (dropdown.left + $(this).outerWidth()) - (menu.left + $('#menu').outerWidth());
-
-        if (i > 0) {
-            $(this).css('margin-left', '-' + (i + 10) + 'px');
-        }
-    });
-
-    // Product List
-    $('#button-list').on('click', function() {
-        var element = this;
-
-        $('#product-list').attr('class', 'row row-cols-1 product-list');
-
-        $('#button-grid').removeClass('active');
-        $('#button-list').addClass('active');
-
-        localStorage.setItem('display', 'list');
-    });
-
-    // Product Grid
-    $('#button-grid').on('click', function() {
-        var element = this;
-
-        // What a shame bootstrap does not take into account dynamically loaded columns
-        $('#product-list').attr('class', 'row row-cols-1 row-cols-sm-2 row-cols-md-2 row-cols-lg-3');
-
-        $('#button-list').removeClass('active');
-        $('#button-grid').addClass('active');
-
-        localStorage.setItem('display', 'grid');
-    });
-
-    // Local Storage
-    if (localStorage.getItem('display') == 'list') {
-        $('#product-list').attr('class', 'row row-cols-1 product-list');
-        $('#button-list').addClass('active');
-    } else {
-        $('#product-list').attr('class', 'row row-cols-1 row-cols-sm-2 row-cols-md-2 row-cols-lg-3');
-        $('#button-grid').addClass('active');
-    }
-
-    /* Agree to Terms */
-    $('body').on('click', '.modal-link', function(e) {
-        e.preventDefault();
-
-        var element = this;
-
-        $('#modal-information').remove();
-
-        $.ajax({
-            url: $(element).attr('href'),
-            dataType: 'html',
-            success: function(html) {
-                $('body').append(html);
-
-                $('#modal-information').modal('show');
-            }
-        });
-    });
-
-    // Cookie Policy
-    $('#cookie button').on('click', function() {
-        var element = this;
-
-        $.ajax({
-            url: $(this).val(),
-            type: 'get',
-            dataType: 'json',
-            beforeSend: function() {
-                $(element).button('loading');
-            },
-            complete: function() {
-                $(element).button('reset');
-            },
-            success: function(json) {
-                if (json['success']) {
-                    $('#cookie').fadeOut(400, function() {
-                        $('#cookie').remove();
-                    });
+                    $(element).width($(element).width()).html('<i class="fa-solid fa-circle-notch fa-spin text-light"></i>');
                 }
-            },
-            error: function(xhr, ajaxOptions, thrownError) {
-                console.log(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
-            }
-        });
-    });
+
+                if (state == 'reset') {
+                    $(element).width('').html(this.html);
+                }
+
+                // If button
+                if ($(element).is('button')) {
+                    if (state == 'loading') {
+                        this.state = $(element).prop('disabled');
+
+                        $(element).prop('disabled', true);
+                    }
+
+                    if (state == 'reset') {
+                        $(element).prop('disabled', this.state);
+                    }
+                }
+
+                // If link
+                if ($(element).is('a')) {
+                    if (state == 'loading') {
+                        this.state = $(element).hasClass('disabled');
+
+                        $(element).addClass('disabled');
+                    }
+
+                    if (state == 'reset') {
+                        if (this.state) {
+                            $(element).addClass('disabled');
+                        } else {
+                            $(element).removeClass('disabled');
+                        }
+                    }
+                }
+            });
+        };
+    }(jQuery);
 });
 
 // Forms
 $(document).on('submit', 'form', function (e) {
     var element = this;
+    var button = (e.originalEvent !== undefined && e.originalEvent.submitter !== undefined) ? e.originalEvent.submitter : '';
 
-    if (e.originalEvent !== undefined && e.originalEvent.submitter !== undefined) {
-        var button = e.originalEvent.submitter;
-    } else {
-        var button = '';
-    }
-
-    var status = false;
-
-    var ajax = $(element).attr('data-oc-toggle');
-
-    if (ajax == 'ajax') {
-        status = true;
-    }
-
-    var ajax = $(button).attr('data-oc-toggle');
-
-    if (ajax == 'ajax') {
-        status = true;
-    }
-
-    if (status) {
+    if ($(element).attr('data-oc-toggle') == 'ajax' || $(button).attr('data-oc-toggle') == 'ajax') {
         e.preventDefault();
 
-        // Form attributes
         var form = e.target;
-
-        var action = $(form).attr('action');
-
-        var method = $(form).attr('method');
-
-        if (method === undefined) {
-            method = 'post';
-        }
-
-        var enctype = $(form).attr('enctype');
-
-        if (enctype === undefined) {
-            enctype = 'application/x-www-form-urlencoded';
-        }
-
-        // Form button overrides
-        var formaction = $(button).attr('formaction');
-
-        if (formaction !== undefined) {
-            action = formaction;
-        }
-
-        var formmethod = $(button).attr('formmethod');
-
-        if (formmethod !== undefined) {
-            method = formmethod;
-        }
-
-        var formenctype = $(button).attr('formenctype');
-
-        if (formenctype !== undefined) {
-            enctype = formenctype;
-        }
-
-        if (button) {
-            var formaction = $(button).attr('data-type');
-        }
+        var action = $(button).attr('formaction') || $(form).attr('action');
+        var method = $(button).attr('formmethod') || $(form).attr('method') || 'post';
+        var enctype = $(button).attr('formenctype') || $(form).attr('enctype') || 'application/x-www-form-urlencoded';
 
         console.log(e);
-        console.log('element ' + element);
+        console.log(element);
         console.log('action ' + action);
         console.log('button ' + button);
-        console.log('formaction ' + formaction);
         console.log('method ' + method);
         console.log('enctype ' + enctype);
         console.log($(element).serialize());
@@ -269,7 +172,7 @@ $(document).on('submit', 'form', function (e) {
 
                 if (typeof json['error'] == 'object') {
                     if (json['error']['warning']) {
-                        $('#alert').prepend('<dirv class="alert alert-danger alert-dismissible"><i class="fa-solid fa-circle-exclamation"></i> ' + json['error']['warning'] + ' <button type="button" class="btn-close" data-bs-dismiss="alert"></button></dirv>');
+                        $('#alert').prepend('<div class="alert alert-danger alert-dismissible"><i class="fa-solid fa-circle-exclamation"></i> ' + json['error']['warning'] + ' <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
                     }
 
                     for (key in json['error']) {
@@ -454,7 +357,7 @@ var chain = new Chain();
 
                 this.timer = setTimeout(function(object) {
                     object.source($(object).val(), $.proxy(object.response, object));
-                }, 50, this);
+                }, 150, this);
             }
 
             // Response
@@ -499,39 +402,102 @@ var chain = new Chain();
     }
 }(jQuery);
 
-// Observe
-+function($) {
-    $.fn.observe = function(callback) {
-        observer = new MutationObserver(callback);
-
-        observer.observe($(this)[0], {
-            characterData: false,
-            childList: true,
-            attributes: false
-        });
-    };
-}(jQuery);
-
 $(document).ready(function() {
-    +function($) {
-        // Button
-        $.fn.button = function(state) {
-            return this.each(function() {
-                var element = this;
+    // Currency
+    $('#form-currency .dropdown-item').on('click', function(e) {
+        e.preventDefault();
 
-                if (state == 'loading') {
-                    this.html = $(element).html();
-                    this.state = $(element).prop('disabled');
+        $('#form-currency input[name=\'code\']').val($(this).attr('href'));
 
-                    $(element).prop('disabled', true).width($(element).width()).html('<i class="fa-solid fa-circle-notch fa-spin text-light"></i>');
+        $('#form-currency').submit();
+    });
+
+    // Language
+    $('#form-language .dropdown-item').on('click', function(e) {
+        e.preventDefault();
+
+        $('#form-language input[name=\'code\']').val($(this).attr('href'));
+
+        $('#form-language').submit();
+    });
+
+    // Product List
+    $('#button-list').on('click', function() {
+        var element = this;
+
+        $('#product-list').attr('class', 'row row-cols-1 product-list');
+
+        $('#button-grid').removeClass('active');
+        $('#button-list').addClass('active');
+
+        localStorage.setItem('display', 'list');
+    });
+
+    // Product Grid
+    $('#button-grid').on('click', function() {
+        var element = this;
+
+        // What a shame bootstrap does not take into account dynamically loaded columns
+        $('#product-list').attr('class', 'row row-cols-1 row-cols-sm-2 row-cols-md-2 row-cols-lg-3');
+
+        $('#button-list').removeClass('active');
+        $('#button-grid').addClass('active');
+
+        localStorage.setItem('display', 'grid');
+    });
+
+    // Local Storage
+    if (localStorage.getItem('display') == 'list') {
+        $('#product-list').attr('class', 'row row-cols-1 product-list');
+        $('#button-list').addClass('active');
+    } else {
+        $('#product-list').attr('class', 'row row-cols-1 row-cols-sm-2 row-cols-md-2 row-cols-lg-3');
+        $('#button-grid').addClass('active');
+    }
+
+    /* Agree to Terms */
+    $('body').on('click', '.modal-link', function(e) {
+        e.preventDefault();
+
+        var element = this;
+
+        $('#modal-information').remove();
+
+        $.ajax({
+            url: $(element).attr('href'),
+            dataType: 'html',
+            success: function(html) {
+                $('body').append(html);
+
+                $('#modal-information').modal('show');
+            }
+        });
+    });
+
+    // Cookie Policy
+    $('#cookie button').on('click', function() {
+        var element = this;
+
+        $.ajax({
+            url: $(this).val(),
+            type: 'get',
+            dataType: 'json',
+            beforeSend: function() {
+                $(element).button('loading');
+            },
+            complete: function() {
+                $(element).button('reset');
+            },
+            success: function(json) {
+                if (json['success']) {
+                    $('#cookie').fadeOut(400, function() {
+                        $('#cookie').remove();
+                    });
                 }
-
-                if (state == 'reset') {
-                    $(element).prop('disabled', this.state).width('').html(this.html);
-                }
-            });
-        };
-    }(jQuery);
+            },
+            error: function(xhr, ajaxOptions, thrownError) {
+                console.log(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+            }
+        });
+    });
 });
-
-

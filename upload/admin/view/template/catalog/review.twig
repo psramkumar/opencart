@@ -47,7 +47,7 @@
                 <input type="date" name="filter_date_to" value="{{ filter_date_to }}" placeholder="{{ entry_date_to }}" id="input-date-to" class="form-control"/>
               </div>
               <div class="text-end">
-                <button type="button" id="button-filter" class="btn btn-light"><i class="fa-solid fa-filter"></i> {{ button_filter }}</button>
+                <button type="submit" id="button-filter" class="btn btn-light"><i class="fa-solid fa-filter"></i> {{ button_filter }}</button>
                 <button type="reset" data-bs-toggle="tooltip" title="{{ button_reset }}" class="btn btn-outline-secondary"><i class="fa-solid fa-filter-circle-xmark"></i></button>
               </div>
             </form>
@@ -57,55 +57,54 @@
       <div class="col-lg-9 col-md-12">
         <div class="card">
           <div class="card-header"><i class="fa-solid fa-list"></i> {{ text_list }}</div>
-          <div id="review" class="card-body">{{ list }}</div>
+          <div id="list" class="card-body">{{ list }}</div>
         </div>
       </div>
     </div>
   </div>
 </div>
 <script type="text/javascript"><!--
-$('#review').on('click', 'thead a, .pagination a', function(e) {
+$('#list').on('click', 'thead a, .pagination a', function(e) {
     e.preventDefault();
 
-    $('#review').load(this.href);
+    $('#list').load(this.href);
 });
 
-$('#button-filter').on('click', function() {
-    url = '';
+$('#form-filter').on('submit', function(e) {
+    e.preventDefault();
 
-    var filter_product = $('#input-product').val();
+    let url = $(this).serialize();
 
-    if (filter_product) {
-        url += '&filter_product=' + encodeURIComponent(filter_product);
-    }
+    window.history.pushState({}, null, 'index.php?route=catalog/review&user_token={{ user_token }}&' + url);
 
-    var filter_author = $('#input-author').val();
+    $('#list').load('index.php?route=catalog/review.list&user_token={{ user_token }}&' + url);
+});
 
-    if (filter_author) {
-        url += '&filter_author=' + encodeURIComponent(filter_author);
-    }
+$('#list').on('change', '.form-switch .form-check-input', function(e) {
+    e.preventDefault();
 
-    var filter_status = $('#input-status').val();
+    var element = this;
 
-    if (filter_status !== '') {
-        url += '&filter_status=' + filter_status;
-    }
+    $.ajax({
+        url: $(element).val(),
+        dataType: 'json',
+        success: function(json) {
+            $('.alert-dismissible').remove();
 
-    var filter_date_from = $('#input-date-from').val();
+            if (json['error']) {
+                $('#alert').prepend('<div class="alert alert-danger alert-dismissible"><i class="fa-solid fa-circle-exclamation"></i> ' + json['error'] + ' <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
+            }
 
-    if (filter_date_from) {
-        url += '&filter_date_from=' + encodeURIComponent(filter_date_from);
-    }
+            if (json['success']) {
+                $('#alert').prepend('<div class="alert alert-success alert-dismissible"><i class="fa-solid fa-check-circle"></i> ' + json['success'] + ' <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
 
-    var filter_date_to = $('#input-date-to').val();
-
-    if (filter_date_to) {
-        url += '&filter_date_to=' + encodeURIComponent(filter_date_to);
-    }
-
-    window.history.pushState({}, null, 'index.php?route=catalog/review&user_token={{ user_token }}' + url);
-
-    $('#review').load('index.php?route=catalog/review.list&user_token={{ user_token }}' + url);
+                $('#list').load($('#form-review').attr('data-oc-load'));
+            }
+        },
+        error: function(xhr, ajaxOptions, thrownError) {
+            console.log(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+        }
+    });
 });
 
 $('#input-product').autocomplete({
@@ -124,7 +123,7 @@ $('#input-product').autocomplete({
         });
     },
     'select': function(item) {
-        $('#input-product').val(item['label']);
+        $('#input-product').val(decodeHTMLEntities(item['label']));
     }
 });
 

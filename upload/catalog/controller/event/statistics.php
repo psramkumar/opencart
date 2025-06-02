@@ -6,9 +6,10 @@ namespace Opencart\Catalog\Controller\Event;
  * @package Opencart\Catalog\Controller\Event
  */
 class Statistics extends \Opencart\System\Engine\Controller {
-	// catalog/model/catalog/review/addReview/after
 	/**
 	 * Add Review
+	 *
+	 * catalog/model/catalog/review/addReview/after
 	 *
 	 * @param string            $route
 	 * @param array<int, mixed> $args
@@ -17,15 +18,16 @@ class Statistics extends \Opencart\System\Engine\Controller {
 	 * @return void
 	 */
 	public function addReview(string &$route, array &$args, &$output): void {
+		// Stats
 		$this->load->model('report/statistics');
 
 		$this->model_report_statistics->addValue('review', 1);
 	}
 
-	// catalog/model/account/returns/addReturn/after
-
 	/**
 	 * Add Return
+	 *
+	 * catalog/model/account/returns.addReturn/after
 	 *
 	 * @param string            $route
 	 * @param array<int, mixed> $args
@@ -34,15 +36,16 @@ class Statistics extends \Opencart\System\Engine\Controller {
 	 * @return void
 	 */
 	public function addReturn(string &$route, array &$args, &$output): void {
+		// Stats
 		$this->load->model('report/statistics');
 
 		$this->model_report_statistics->addValue('returns', 1);
 	}
 
-	// catalog/model/checkout/order/addHistory/before
-
 	/**
 	 * Add History
+	 *
+	 * catalog/model/checkout/order.addHistory/before
 	 *
 	 * @param string            $route
 	 * @param array<int, mixed> $args
@@ -50,11 +53,13 @@ class Statistics extends \Opencart\System\Engine\Controller {
 	 * @return void
 	 */
 	public function addHistory(string &$route, array &$args): void {
+		// Order
 		$this->load->model('checkout/order');
 
 		$order_info = $this->model_checkout_order->getOrder($args[0]);
 
 		if ($order_info) {
+			// Stats
 			$this->load->model('report/statistics');
 
 			$old_status_id = $order_info['order_status_id'];

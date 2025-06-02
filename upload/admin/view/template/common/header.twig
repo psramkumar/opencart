@@ -13,7 +13,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
   <meta http-equiv="cache-control" content="no-cache">
   <meta http-equiv="expires" content="0">
-  <link href="{{ bootstrap }}" rel="stylesheet" media="screen"/>
   <link href="{{ icons }}" rel="stylesheet" type="text/css"/>
   <link href="{{ stylesheet }}" rel="stylesheet" type="text/css"/>
   <script src="{{ jquery }}" type="text/javascript"></script>
@@ -29,8 +28,8 @@
   {% endfor %}
 </head>
 <body>
+<div id="alert"></div>
 <div id="container">
-  <div id="alert" class="toast-container position-fixed top-0 end-0 p-3"></div>
   <header id="header" class="navbar navbar-expand navbar-light bg-light">
     <div class="container-fluid">
       <a href="{{ home }}" class="navbar-brand d-none d-lg-block"><img src="view/image/logo.png" alt="{{ heading_title }}" title="{{ heading_title }}"/></a>

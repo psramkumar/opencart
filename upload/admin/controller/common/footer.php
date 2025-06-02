@@ -3,6 +3,8 @@ namespace Opencart\Admin\Controller\Common;
 /**
  * Class Footer
  *
+ * Can be loaded using $this->load->controller('common/footer');
+ *
  * @package Opencart\Admin\Controller\Common
  */
 class Footer extends \Opencart\System\Engine\Controller {

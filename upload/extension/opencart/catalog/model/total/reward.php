@@ -3,6 +3,8 @@ namespace Opencart\Catalog\Model\Extension\Opencart\Total;
 /**
  * Class Reward
  *
+ * Can be called from $this->load->model('extension/opencart/total/reward');
+ *
  * @package Opencart\Catalog\Model\Extension\Opencart\Total
  */
 class Reward extends \Opencart\System\Engine\Model {
@@ -21,7 +23,7 @@ class Reward extends \Opencart\System\Engine\Model {
 
 			$points = $this->customer->getRewardPoints();
 
-			if ($this->session->data['reward'] <= $points) {
+			if ($this->session->data['reward'] <= $points && $this->session->data['reward'] > 0) {
 				$discount_total = 0;
 
 				$points_total = 0;
@@ -87,6 +89,7 @@ class Reward extends \Opencart\System\Engine\Model {
 			$points = (float)substr($order_total['title'], $start + 1, $end - ($start + 1));
 		}
 
+		// Reward
 		$this->load->model('account/reward');
 
 		if ($order_info['customer_id'] && $this->model_account_reward->getRewardTotal($order_info['customer_id']) >= $points) {
@@ -106,6 +109,7 @@ class Reward extends \Opencart\System\Engine\Model {
 	 * @return void
 	 */
 	public function unconfirm(array $order_info): void {
+		// Reward
 		$this->load->model('account/reward');
 
 		$this->model_account_reward->deleteRewardByOrderId($order_info['order_id']);

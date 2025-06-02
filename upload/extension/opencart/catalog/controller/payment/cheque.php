@@ -32,6 +32,7 @@ class Cheque extends \Opencart\System\Engine\Controller {
 
 		$json = [];
 
+		// Order
 		if (isset($this->session->data['order_id'])) {
 			$this->load->model('checkout/order');
 
@@ -57,6 +58,7 @@ class Cheque extends \Opencart\System\Engine\Controller {
 			$comment .= $this->config->get('config_address') . "\n\n";
 			$comment .= $this->language->get('text_payment') . "\n";
 
+			// Order
 			$this->load->model('checkout/order');
 
 			$this->model_checkout_order->addHistory($this->session->data['order_id'], $this->config->get('payment_cheque_order_status_id'), $comment, true);

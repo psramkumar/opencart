@@ -3,6 +3,8 @@ namespace Opencart\Catalog\Model\Extension\Opencart\Module;
 /**
  * Class Bestseller
  *
+ * Can be called from $this->load->model('extension/opencart/module/bestseller');
+ *
  * @package Opencart\Catalog\Model\Extension\Opencart\Module
  */
 class Bestseller extends \Opencart\Catalog\Model\Catalog\Product {
@@ -12,6 +14,10 @@ class Bestseller extends \Opencart\Catalog\Model\Catalog\Product {
 	 * @param int $limit
 	 *
 	 * @return array<int, array<string, mixed>>
+	 *
+	 * @example
+	 *
+	 * $results = $this->model_extension_opencart_module_bestseller->getBestSellers($limit);
 	 */
 	public function getBestSellers(int $limit): array {
 		// Storing some sub queries so that we are not typing them out multiple times.

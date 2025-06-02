@@ -124,6 +124,7 @@ class Gdpr extends \Opencart\System\Engine\Controller {
 
 		$data['action'] = $this->url->link('customer/gdpr.list', 'user_token=' . $this->session->data['user_token'] . $url, true);
 
+		// GDPR
 		$data['gdprs'] = [];
 
 		$filter_data = [
@@ -137,6 +138,8 @@ class Gdpr extends \Opencart\System\Engine\Controller {
 		];
 
 		$this->load->model('customer/gdpr');
+
+		// Customer
 		$this->load->model('customer/customer');
 
 		$results = $this->model_customer_gdpr->getGdprs($filter_data);
@@ -151,16 +154,13 @@ class Gdpr extends \Opencart\System\Engine\Controller {
 			}
 
 			$data['gdprs'][] = [
-				'gdpr_id'    => $result['gdpr_id'],
-				'email'      => $result['email'],
 				'action'     => $this->language->get('text_' . $result['action']),
-				'status'     => $result['status'],
 				'date_added' => date($this->language->get('date_format_short'), strtotime($result['date_added'])),
 				'approve'    => $this->url->link('customer/gdpr.approve', 'user_token=' . $this->session->data['user_token'] . '&gdpr_id=' . $result['gdpr_id'], true),
 				'deny'       => $this->url->link('customer/gdpr.deny', 'user_token=' . $this->session->data['user_token'] . '&gdpr_id=' . $result['gdpr_id'], true),
 				'edit'       => $edit,
 				'delete'     => $this->url->link('customer/gdpr.delete', 'user_token=' . $this->session->data['user_token'] . '&gdpr_id=' . $result['gdpr_id'], true)
-			];
+			] + $result;
 		}
 
 		$url = '';
@@ -185,8 +185,10 @@ class Gdpr extends \Opencart\System\Engine\Controller {
 			$url .= '&filter_date_to=' . $this->request->get['filter_date_to'];
 		}
 
+		// Total GDPRs
 		$gdpr_total = $this->model_customer_gdpr->getTotalGdprs($filter_data);
 
+		// Pagination
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $gdpr_total,
 			'page'  => $page,
@@ -199,7 +201,7 @@ class Gdpr extends \Opencart\System\Engine\Controller {
 		return $this->load->view('customer/gdpr_list', $data);
 	}
 
-	/*
+	/**
 	 *  Action Statuses
 	 *
 	 *	EXPORT
@@ -221,7 +223,7 @@ class Gdpr extends \Opencart\System\Engine\Controller {
 	 *	pending    = 1
 	 *	processing = 2
 	 *	denied     = -1
-	*/
+	 */
 	/**
 	 * Approve
 	 *
@@ -235,7 +237,7 @@ class Gdpr extends \Opencart\System\Engine\Controller {
 		$gdprs = [];
 
 		if (isset($this->request->post['selected'])) {
-			$gdprs = $this->request->post['selected'];
+			$gdprs = (array)$this->request->post['selected'];
 		}
 
 		if (isset($this->request->get['gdpr_id'])) {
@@ -247,13 +249,14 @@ class Gdpr extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// GDPR
 			$this->load->model('customer/gdpr');
 
 			foreach ($gdprs as $gdpr_id) {
 				$gdpr_info = $this->model_customer_gdpr->getGdpr($gdpr_id);
 
 				if ($gdpr_info) {
-					// If we remove we want to change the status to processing
+					// If we remove, we want to change the status to processing
 					// to give time for store owners to process orders and refunds.
 					if ($gdpr_info['action'] == 'export') {
 						$this->model_customer_gdpr->editStatus($gdpr_id, 3);
@@ -283,7 +286,7 @@ class Gdpr extends \Opencart\System\Engine\Controller {
 		$gdprs = [];
 
 		if (isset($this->request->post['selected'])) {
-			$gdprs = $this->request->post['selected'];
+			$gdprs = (array)$this->request->post['selected'];
 		}
 
 		if (isset($this->request->get['gdpr_id'])) {
@@ -295,6 +298,7 @@ class Gdpr extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// GDPR
 			$this->load->model('customer/gdpr');
 
 			foreach ($gdprs as $gdpr_id) {
@@ -321,7 +325,7 @@ class Gdpr extends \Opencart\System\Engine\Controller {
 		$gdprs = [];
 
 		if (isset($this->request->post['selected'])) {
-			$gdprs = $this->request->post['selected'];
+			$gdprs = (array)$this->request->post['selected'];
 		}
 
 		if (isset($this->request->get['gdpr_id'])) {
@@ -333,6 +337,7 @@ class Gdpr extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// GDPR
 			$this->load->model('customer/gdpr');
 
 			foreach ($gdprs as $gdpr_id) {

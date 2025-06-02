@@ -3,6 +3,8 @@ namespace Opencart\Catalog\Model\Localisation;
 /**
  * Class Language
  *
+ * Can be called using $this->load->model('localisation/language');
+ *
  * @package Opencart\Catalog\Model\Localisation
  */
 class Language extends \Opencart\System\Engine\Model {
@@ -14,9 +16,17 @@ class Language extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Language
 	 *
-	 * @param int $language_id
+	 * Get the record of the language record in the database.
 	 *
-	 * @return array<string, mixed>
+	 * @param int $language_id primary key of the language record
+	 *
+	 * @return array<string, mixed> language record that has language ID
+	 *
+	 * @example
+	 *
+	 * $this->load->model('localisation/language');
+	 *
+	 * $language_info = $this->model_localisation_language->getLanguage($language_id);
 	 */
 	public function getLanguage(int $language_id): array {
 		if (isset($this->data[$language_id])) {
@@ -50,6 +60,12 @@ class Language extends \Opencart\System\Engine\Model {
 	 * @param string $code
 	 *
 	 * @return array<string, mixed>
+	 *
+	 * @example
+	 *
+	 * $this->load->model('localisation/language');
+	 *
+	 * $language_info = $this->model_localisation_language->getLanguageByCode($code);
 	 */
 	public function getLanguageByCode(string $code): array {
 		if (isset($this->data[$code])) {
@@ -80,7 +96,15 @@ class Language extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Languages
 	 *
-	 * @return array<string, array<string, mixed>>
+	 * Get the record of the language records in the database.
+	 *
+	 * @return array<string, array<string, mixed>> language records
+	 *
+	 * @example
+	 *
+	 * $this->load->model('localisation/language');
+	 *
+	 * $languages = $this->model_localisation_language->getLanguages();
 	 */
 	public function getLanguages(): array {
 		$sql = "SELECT * FROM `" . DB_PREFIX . "language` WHERE `status` = '1' ORDER BY `sort_order`, `name`";
@@ -106,16 +130,7 @@ class Language extends \Opencart\System\Engine\Model {
 				$image .= 'extension/' . $result['extension'] . '/catalog/';
 			}
 
-			$language_data[$result['code']] = [
-				'language_id' => $result['language_id'],
-				'name'        => $result['name'],
-				'code'        => $result['code'],
-				'image'       => $image . 'language/' . $result['code'] . '/' . $result['code'] . '.png',
-				'locale'      => $result['locale'],
-				'extension'   => $result['extension'],
-				'sort_order'  => $result['sort_order'],
-				'status'      => $result['status']
-			];
+			$language_data[$result['code']] = ['image' => $image . 'language/' . $result['code'] . '/' . $result['code'] . '.png'] + $result;
 		}
 
 		return $language_data;

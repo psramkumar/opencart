@@ -1,21 +1,24 @@
 <?php
 namespace Opencart\Catalog\Model\Checkout;
 /**
- * Class ShippingMethod
+ * Class Shipping Method
+ *
+ * Can be called using $this->load->model('checkout/shipping_method');
  *
  * @package Opencart\Catalog\Model\Checkout
  */
-class ShippingMethod extends \Opencart\System\Engine\Controller {
+class ShippingMethod extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Methods
 	 *
-	 * @param array<string, mixed> $shipping_address
+	 * @param array<string, mixed> $shipping_address array of data
 	 *
 	 * @return array<string, array<string, mixed>>
 	 */
 	public function getMethods(array $shipping_address): array {
 		$method_data = [];
 
+		// Extensions
 		$this->load->model('setting/extension');
 
 		$results = $this->model_setting_extension->getExtensionsByType('shipping');

@@ -3,7 +3,7 @@
  * @package     OpenCart
  *
  * @author      Daniel Kerr
- * @copyright   Copyright (c) 2005 - 2017, OpenCart, Ltd. (https://www.opencart.com/)
+ * @copyright   Copyright (c) 2005 - 2022, OpenCart, Ltd. (https://www.opencart.com/)
  * @license     https://opensource.org/licenses/GPL-3.0
  *
  * @see        https://www.opencart.com
@@ -11,6 +11,8 @@
 namespace Opencart\System\Engine;
 /**
  * Class Action
+ *
+ * Allows the stored action to be passed around and be executed by the framework and events.
  *
  * @package Opencart\System\Engine
  */
@@ -23,6 +25,11 @@ class Action {
 	/**
 	 * @var string
 	 */
+	private string $controller;
+
+	/**
+	 * @var string
+	 */
 	private string $method;
 
 	/**
@@ -31,15 +38,15 @@ class Action {
 	 * @param string $route
 	 */
 	public function __construct(string $route) {
-		$route = preg_replace('/[^a-zA-Z0-9_|\/\.]/', '', $route);
+		$this->route = preg_replace('/[^a-zA-Z0-9_|\/\.]/', '', $route);
 
 		$pos = strrpos($route, '.');
 
 		if ($pos !== false) {
-			$this->route = substr($route, 0, $pos);
+			$this->controller = substr($route, 0, $pos);
 			$this->method = substr($route, $pos + 1);
 		} else {
-			$this->route = $route;
+			$this->controller = $route;
 			$this->method = 'index';
 		}
 	}
@@ -67,30 +74,28 @@ class Action {
 			return new \Exception('Error: Calls to magic methods are not allowed!');
 		}
 
-		// Create a key to store the controller object
-		$key = 'controller_' . str_replace('/', '_', $this->route);
+		// Create a new key to store the model object
+		$key = 'fallback_controller_' . str_replace('/', '_', $this->controller);
 
 		if (!$registry->has($key)) {
-			// Initialize the class
-			$controller = $registry->get('factory')->controller($this->route);
-
-			// Store object
-			$registry->set($key, $controller);
+			$object = $registry->get('factory')->controller($this->controller);
 		} else {
-			$controller = $registry->get($key);
+			$object = $registry->get($key);
 		}
 
-		// If action cannot be executed, we return an action error object.
-		if ($controller instanceof \Exception) {
-			return new \Exception('Error: Could not call route ' . $this->route . '!');
+		if ($object instanceof \Opencart\System\Engine\Controller) {
+			$registry->set($key, $object);
+		} else {
+			// If action cannot be executed, we return an error object.
+			return new \Exception('Error: Could not load controller ' . $this->route . '!');
 		}
 
-		$callable = [$controller, $this->method];
+		$callable = [$object, $this->method];
 
 		if (is_callable($callable)) {
 			return $callable(...$args);
 		} else {
-			return new \Exception('Error: Could not call route ' . $this->route . '!');
+			return new \Exception('Error: Could not call controller ' . $this->route . '!');
 		}
 	}
 }

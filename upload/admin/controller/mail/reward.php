@@ -9,6 +9,8 @@ class Reward extends \Opencart\System\Engine\Controller {
 	/**
 	 * Index
 	 *
+	 * admin/model/customer/customer.addReward/after
+	 *
 	 * @param string            $route
 	 * @param array<int, mixed> $args
 	 * @param mixed             $output
@@ -42,6 +44,7 @@ class Reward extends \Opencart\System\Engine\Controller {
 			$order_id = 0;
 		}
 
+		// Customer
 		$this->load->model('customer/customer');
 
 		$customer_info = $this->model_customer_customer->getCustomer($customer_id);
@@ -49,6 +52,7 @@ class Reward extends \Opencart\System\Engine\Controller {
 		if ($customer_info) {
 			$this->load->language('mail/reward');
 
+			// Setting
 			$this->load->model('setting/store');
 
 			$store_info = $this->model_setting_store->getStore($customer_info['store_id']);
@@ -61,6 +65,7 @@ class Reward extends \Opencart\System\Engine\Controller {
 				$store_url = HTTP_CATALOG;
 			}
 
+			// Send the email in the correct language
 			$this->load->model('localisation/language');
 
 			$language_info = $this->model_localisation_language->getLanguage($customer_info['language_id']);

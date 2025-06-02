@@ -19,7 +19,6 @@ class Notification extends \Opencart\System\Engine\Controller {
 			curl_setopt($curl, CURLOPT_URL, OPENCART_SERVER . 'index.php?route=api/notification');
 			curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
 			curl_setopt($curl, CURLOPT_HEADER, false);
-			curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
 			curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 30);
 			curl_setopt($curl, CURLOPT_TIMEOUT, 30);
 
@@ -29,6 +28,7 @@ class Notification extends \Opencart\System\Engine\Controller {
 
 			curl_close($curl);
 
+			// Notification
 			if ($status == 200) {
 				$notification = json_decode($response, true);
 			} else {
@@ -37,6 +37,7 @@ class Notification extends \Opencart\System\Engine\Controller {
 
 			if (isset($notification['notification'])) {
 				$this->load->model('tool/notification');
+				
 				foreach ($notification['notifications'] as $result) {
 					$notification_info = $this->model_tool_notification->addNotification($result['notification_id']);
 

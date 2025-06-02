@@ -7,6 +7,13 @@ namespace Opencart\Catalog\Controller\Startup;
  */
 class SeoUrl extends \Opencart\System\Engine\Controller {
 	/**
+	 * @var array<string, string>
+	 */
+	private array $data = [];
+
+	/**
+	 * Index
+	 *
 	 * @return null
 	 */
 	public function index() {
@@ -77,6 +84,8 @@ class SeoUrl extends \Opencart\System\Engine\Controller {
 
 		parse_str($url_info['query'], $query);
 
+		$language_id = $this->config->get('config_language_id');
+
 		// Start changing the URL query into a path
 		$paths = [];
 
@@ -96,10 +105,14 @@ class SeoUrl extends \Opencart\System\Engine\Controller {
 				$value = '';
 			}
 
-			$result = $this->model_design_seo_url->getSeoUrlByKeyValue((string)$key, (string)$value);
+			$index = $key . '=' . $value;
 
-			if ($result) {
-				$paths[] = $result;
+			if (!isset($this->data[$language_id][$index])) {
+				$this->data[$language_id][$index] = $this->model_design_seo_url->getSeoUrlByKeyValue((string)$key, (string)$value);
+			}
+
+			if ($this->data[$language_id][$index]) {
+				$paths[] = $this->data[$language_id][$index];
 
 				unset($query[$key]);
 			}

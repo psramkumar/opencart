@@ -9,14 +9,17 @@ class Banner extends \Opencart\System\Engine\Controller {
 	/**
 	 * Index
 	 *
-	 * @param array<string, mixed> $setting
+	 * @param array<string, mixed> $setting array of filters
 	 *
 	 * @return string
 	 */
 	public function index(array $setting): string {
 		static $module = 0;
 
+		// Banner
 		$this->load->model('design/banner');
+
+		// Image
 		$this->load->model('tool/image');
 
 		$data['banners'] = [];

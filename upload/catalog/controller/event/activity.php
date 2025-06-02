@@ -18,6 +18,7 @@ class Activity extends \Opencart\System\Engine\Controller {
 	 * @return void
 	 */
 	public function addCustomer(string &$route, array &$args, &$output): void {
+		// Activity
 		if ($this->config->get('config_customer_activity')) {
 			$this->load->model('account/activity');
 
@@ -42,6 +43,7 @@ class Activity extends \Opencart\System\Engine\Controller {
 	 * @return void
 	 */
 	public function editCustomer(string &$route, array &$args, &$output): void {
+		// Activity
 		if ($this->config->get('config_customer_activity')) {
 			$this->load->model('account/activity');
 
@@ -66,6 +68,7 @@ class Activity extends \Opencart\System\Engine\Controller {
 	 * @return void
 	 */
 	public function editPassword(string &$route, array &$args, &$output): void {
+		// Activity
 		if ($this->config->get('config_customer_activity')) {
 			$this->load->model('account/activity');
 
@@ -122,7 +125,7 @@ class Activity extends \Opencart\System\Engine\Controller {
 	/**
 	 * Forgotten
 	 *
-	 * catalog/model/account/customer/editCode/after
+	 * catalog/model/account/customer/addToken/after
 	 *
 	 * @param string            $route
 	 * @param array<int, mixed> $args
@@ -131,6 +134,7 @@ class Activity extends \Opencart\System\Engine\Controller {
 	 * @return void
 	 */
 	public function forgotten(string &$route, array &$args, &$output): void {
+		// Customer
 		if (isset($this->request->get['route']) && $this->request->get['route'] == 'account/forgotten' && $this->config->get('config_customer_activity')) {
 			$this->load->model('account/customer');
 
@@ -161,6 +165,7 @@ class Activity extends \Opencart\System\Engine\Controller {
 	 * @return void
 	 */
 	public function addTransaction(string &$route, array &$args, &$output): void {
+		// Customer
 		if ($this->config->get('config_customer_activity')) {
 			$this->load->model('account/customer');
 
@@ -192,12 +197,13 @@ class Activity extends \Opencart\System\Engine\Controller {
 	 * @return void
 	 */
 	public function addAffiliate(string &$route, array &$args, &$output): void {
+		// Activity
 		if ($this->config->get('config_customer_activity')) {
 			$this->load->model('account/activity');
 
 			$activity_data = [
-				'customer_id' => $args[0],
-				'name'        => $args[1]['firstname'] . ' ' . $args[1]['lastname']
+				'customer_id' => $this->customer->getId(),
+				'name'        => $this->customer->getFirstName() . ' ' . $this->customer->getLastName()
 			];
 
 			$this->model_account_activity->addActivity('affiliate_add', $activity_data);
@@ -216,6 +222,7 @@ class Activity extends \Opencart\System\Engine\Controller {
 	 * @return void
 	 */
 	public function editAffiliate(string &$route, array &$args, &$output): void {
+		// Activity
 		if ($this->config->get('config_customer_activity')) {
 			$this->load->model('account/activity');
 
@@ -240,6 +247,7 @@ class Activity extends \Opencart\System\Engine\Controller {
 	 * @return void
 	 */
 	public function addAddress(string &$route, array &$args, &$output): void {
+		// Activity
 		if ($this->config->get('config_customer_activity')) {
 			$this->load->model('account/activity');
 
@@ -255,7 +263,7 @@ class Activity extends \Opencart\System\Engine\Controller {
 	/**
 	 * Edit Address
 	 *
-	 * Called by catalog/model/account/address/editAddress/after
+	 * catalog/model/account/address/editAddress/after
 	 *
 	 * @param string            $route
 	 * @param array<int, mixed> $args
@@ -264,6 +272,7 @@ class Activity extends \Opencart\System\Engine\Controller {
 	 * @return void
 	 */
 	public function editAddress(string &$route, array &$args, &$output): void {
+		// Activity
 		if ($this->config->get('config_customer_activity')) {
 			$this->load->model('account/activity');
 
@@ -279,7 +288,7 @@ class Activity extends \Opencart\System\Engine\Controller {
 	/**
 	 * Delete Address
 	 *
-	 * Called by catalog/model/account/address/deleteAddress/after
+	 * catalog/model/account/address/deleteAddress/after
 	 *
 	 * @param string            $route
 	 * @param array<int, mixed> $args
@@ -288,6 +297,7 @@ class Activity extends \Opencart\System\Engine\Controller {
 	 * @return void
 	 */
 	public function deleteAddress(string &$route, array &$args, &$output): void {
+		// Activity
 		if ($this->config->get('config_customer_activity')) {
 			$this->load->model('account/activity');
 
@@ -312,6 +322,7 @@ class Activity extends \Opencart\System\Engine\Controller {
 	 * @return void
 	 */
 	public function addReturn(string &$route, array &$args, &$output): void {
+		// Activity
 		if ($this->config->get('config_customer_activity') && $output) {
 			$this->load->model('account/activity');
 
@@ -345,12 +356,14 @@ class Activity extends \Opencart\System\Engine\Controller {
 	 * @return void
 	 */
 	public function addHistory(string &$route, array &$args): void {
+		// Customer
 		if ($this->config->get('config_customer_activity')) {
 			// If the last order status id returns 0, and the new order status is not, then we record it as new order
 			$this->load->model('checkout/order');
 
 			$order_info = $this->model_checkout_order->getOrder($args[0]);
 
+			// Activity
 			if ($order_info && !$order_info['order_status_id'] && $args[1]) {
 				$this->load->model('account/activity');
 

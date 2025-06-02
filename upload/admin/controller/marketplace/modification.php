@@ -18,14 +18,6 @@ class Modification extends \Opencart\System\Engine\Controller {
 
 		$url = '';
 
-		if (isset($this->request->get['sort'])) {
-			$url .= '&sort=' . $this->request->get['sort'];
-		}
-
-		if (isset($this->request->get['order'])) {
-			$url .= '&order=' . $this->request->get['order'];
-		}
-
 		if (isset($this->request->get['page'])) {
 			$url .= '&page=' . $this->request->get['page'];
 		}
@@ -77,18 +69,6 @@ class Modification extends \Opencart\System\Engine\Controller {
 	 * @return string
 	 */
 	public function getList(): string {
-		if (isset($this->request->get['sort'])) {
-			$sort = (string)$this->request->get['sort'];
-		} else {
-			$sort = 'name';
-		}
-
-		if (isset($this->request->get['order'])) {
-			$order = (string)$this->request->get['order'];
-		} else {
-			$order = 'ASC';
-		}
-
 		if (isset($this->request->get['page'])) {
 			$page = (int)$this->request->get['page'];
 		} else {
@@ -97,25 +77,16 @@ class Modification extends \Opencart\System\Engine\Controller {
 
 		$url = '';
 
-		if (isset($this->request->get['sort'])) {
-			$url .= '&sort=' . $this->request->get['sort'];
-		}
-
-		if (isset($this->request->get['order'])) {
-			$url .= '&order=' . $this->request->get['order'];
-		}
-
 		if (isset($this->request->get['page'])) {
 			$url .= '&page=' . $this->request->get['page'];
 		}
 
 		$data['action'] = $this->url->link('marketplace/modification.list', 'user_token=' . $this->session->data['user_token'] . $url);
 
+		// Modifications
 		$data['modifications'] = [];
 
 		$filter_data = [
-			'sort'  => $sort,
-			'order' => $order,
 			'start' => ($page - 1) * $this->config->get('config_pagination_admin'),
 			'limit' => $this->config->get('config_pagination_admin')
 		];
@@ -126,57 +97,23 @@ class Modification extends \Opencart\System\Engine\Controller {
 
 		foreach ($results as $result) {
 			$data['modifications'][] = [
-				'modification_id' => $result['modification_id'],
-				'name'            => $result['name'],
-				'code'            => $result['code'],
-				'description'     => $result['description'],
-				'author'          => $result['author'],
-				'version'         => $result['version'],
-				'xml'             => $result['xml'],
-				'status'          => $result['status'],
-				'date_added'      => date($this->language->get('date_format_short'), strtotime($result['date_added'])),
-				'link'            => $result['link'],
-				'enable'          => $this->url->link('marketplace/modification.enable', 'user_token=' . $this->session->data['user_token'] . '&modification_id=' . $result['modification_id']),
-				'disable'         => $this->url->link('marketplace/modification.disable', 'user_token=' . $this->session->data['user_token'] . '&modification_id=' . $result['modification_id'])
-			];
+				'date_added' => date($this->language->get('date_format_short'), strtotime($result['date_added'])),
+				'enable'     => $this->url->link('marketplace/modification.enable', 'user_token=' . $this->session->data['user_token'] . '&modification_id=' . $result['modification_id']),
+				'disable'    => $this->url->link('marketplace/modification.disable', 'user_token=' . $this->session->data['user_token'] . '&modification_id=' . $result['modification_id'])
+			] + $result;
 		}
 
-		$url = '';
-
-		if ($order == 'ASC') {
-			$url .= '&order=DESC';
-		} else {
-			$url .= '&order=ASC';
-		}
-
-		$data['sort_name'] = $this->url->link('marketplace/modification', 'user_token=' . $this->session->data['user_token'] . '&sort=name' . $url, true);
-		$data['sort_author'] = $this->url->link('marketplace/modification', 'user_token=' . $this->session->data['user_token'] . '&sort=author' . $url, true);
-		$data['sort_version'] = $this->url->link('marketplace/modification', 'user_token=' . $this->session->data['user_token'] . '&sort=version' . $url, true);
-		$data['sort_date_added'] = $this->url->link('marketplace/modification', 'user_token=' . $this->session->data['user_token'] . '&sort=date_added' . $url, true);
-
-		$url = '';
-
-		if (isset($this->request->get['sort'])) {
-			$url .= '&sort=' . $this->request->get['sort'];
-		}
-
-		if (isset($this->request->get['order'])) {
-			$url .= '&order=' . $this->request->get['order'];
-		}
-
+		// Total Modifications
 		$modification_total = $this->model_setting_modification->getTotalModifications();
 
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $modification_total,
 			'page'  => $page,
 			'limit' => $this->config->get('config_pagination_admin'),
-			'url'   => $this->url->link('marketplace/modification.list', 'user_token=' . $this->session->data['user_token'] . $url . '&page={page}')
+			'url'   => $this->url->link('marketplace/modification.list', 'user_token=' . $this->session->data['user_token'] . '&page={page}')
 		]);
 
 		$data['results'] = sprintf($this->language->get('text_pagination'), ($modification_total) ? (($page - 1) * $this->config->get('config_pagination_admin')) + 1 : 0, ((($page - 1) * $this->config->get('config_pagination_admin')) > ($modification_total - $this->config->get('config_pagination_admin'))) ? $modification_total : ((($page - 1) * $this->config->get('config_pagination_admin')) + $this->config->get('config_pagination_admin')), $modification_total, ceil($modification_total / $this->config->get('config_pagination_admin')));
-
-		$data['sort'] = $sort;
-		$data['order'] = $order;
 
 		return $this->load->view('marketplace/modification_list', $data);
 	}
@@ -201,6 +138,7 @@ class Modification extends \Opencart\System\Engine\Controller {
 			// Just before files are deleted, if config settings say maintenance mode is off then turn it on
 			$maintenance = $this->config->get('config_maintenance');
 
+			// Setting
 			$this->load->model('setting/setting');
 
 			$this->model_setting_setting->editValue('config', 'config_maintenance', '1');
@@ -255,6 +193,7 @@ class Modification extends \Opencart\System\Engine\Controller {
 				}
 			}
 
+			// Modifications
 			$this->load->model('setting/modification');
 
 			$results = $this->model_setting_modification->getModifications();
@@ -673,6 +612,7 @@ class Modification extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Modification
 			$this->load->model('setting/modification');
 
 			$this->model_setting_modification->editStatus($modification_id, true);
@@ -705,6 +645,7 @@ class Modification extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Modification
 			$this->load->model('setting/modification');
 
 			$this->model_setting_modification->editStatus($modification_id, false);
@@ -737,6 +678,7 @@ class Modification extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Modification
 			$this->load->model('setting/modification');
 
 			foreach ($selected as $modification_id) {

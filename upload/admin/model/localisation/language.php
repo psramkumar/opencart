@@ -3,15 +3,34 @@ namespace Opencart\Admin\Model\Localisation;
 /**
  * Class Language
  *
+ * Can be loaded using $this->load->model('localisation/language');
+ *
  * @package Opencart\Admin\Model\Localisation
  */
 class Language extends \Opencart\System\Engine\Model {
 	/**
 	 * Add Language
 	 *
-	 * @param array<string, mixed> $data
+	 * Create a new language record in the database.
 	 *
-	 * @return int
+	 * @param array<string, mixed> $data array of data
+	 *
+	 * @return int returns the primary key of the new language record
+	 *
+	 * @example
+	 *
+	 * $language_data = [
+	 *     'name'       => 'Language Name',
+	 *     'code'       => 'Language Code',
+	 *     'locale'     => 'Language Locale',
+	 *     'extension'  => '',
+	 *     'sort_order' => 0,
+	 *     'status'     => 0
+	 * ];
+	 *
+	 * $this->load->model('localisation/language');
+	 *
+	 * $language_id = $this->model_localisation_language->addLanguage($language_data);
 	 */
 	public function addLanguage(array $data): int {
 		$this->db->query("INSERT INTO `" . DB_PREFIX . "language` SET `name` = '" . $this->db->escape((string)$data['name']) . "', `code` = '" . $this->db->escape((string)$data['code']) . "', `locale` = '" . $this->db->escape((string)$data['locale']) . "', `extension` = '" . $this->db->escape((string)$data['extension']) . "', `sort_order` = '" . (int)$data['sort_order'] . "', `status` = '" . (bool)($data['status'] ?? 0) . "'");
@@ -54,6 +73,15 @@ class Language extends \Opencart\System\Engine\Model {
 
 		foreach ($results as $category) {
 			$this->model_catalog_category->addDescription($category['category_id'], $language_id, $category);
+		}
+
+		// Country
+		$this->load->model('localisation/country');
+
+		$results = $this->model_localisation_country->getDescriptionsByLanguageId($this->config->get('config_language_id'));
+
+		foreach ($results as $country) {
+			$this->model_localisation_country->addDescription($country['country_id'], $language_id, $country);
 		}
 
 		// Customer Group
@@ -124,6 +152,15 @@ class Language extends \Opencart\System\Engine\Model {
 
 		foreach ($results as $length) {
 			$this->model_localisation_length_class->addDescription($length['length_class_id'], $language_id, $length);
+		}
+
+		// Manufacturer
+		$this->load->model('catalog/manufacturer');
+
+		$results = $this->model_catalog_manufacturer->getDescriptionsByLanguageId($this->config->get('config_language_id'));
+
+		foreach ($results as $manufacturer) {
+			$this->model_catalog_manufacturer->addDescription($manufacturer['manufacturer_id'], $language_id, $manufacturer);
 		}
 
 		// Option
@@ -203,15 +240,6 @@ class Language extends \Opencart\System\Engine\Model {
 			$this->model_localisation_stock_status->addDescription($stock_status['stock_status_id'], $language_id, $stock_status);
 		}
 
-		// Voucher Theme
-		$this->load->model('sale/voucher_theme');
-
-		$results = $this->model_sale_voucher_theme->getDescriptionsByLanguageId($this->config->get('config_language_id'));
-
-		foreach ($results as $voucher_theme) {
-			$this->model_sale_voucher_theme->addDescription($voucher_theme['voucher_theme_id'], $language_id, $voucher_theme);
-		}
-
 		// Weight Class
 		$this->load->model('localisation/weight_class');
 
@@ -239,7 +267,7 @@ class Language extends \Opencart\System\Engine\Model {
 			$this->model_localisation_subscription_status->addDescription($subscription['subscription_status_id'], $language_id, $subscription);
 		}
 
-		// SEO URL
+		// SEO
 		$this->load->model('design/seo_url');
 
 		$results = $this->model_design_seo_url->getSeoUrlsByLanguageId($this->config->get('config_language_id'));
@@ -248,16 +276,70 @@ class Language extends \Opencart\System\Engine\Model {
 			$this->model_design_seo_url->addSeoUrl($seo_url['key'], $seo_url['value'], $seo_url['keyword'], $seo_url['store_id'], $language_id, $seo_url['sort_order']);
 		}
 
+		// Setup new SEO URL language keyword
+		$languages = $this->getLanguages();
+
+		foreach ($languages as $language) {
+			// Set default store
+			$this->model_design_seo_url->addSeoUrl('language', (string)$data['code'], (string)$data['code'], 0, $language['language_id'], -2);
+		}
+
+		// Set default store
+		$this->load->model('setting/store');
+
+		$stores = $this->model_setting_store->getStores();
+
+		foreach ($stores as $store) {
+			foreach ($languages as $language) {
+				$this->model_design_seo_url->addSeoUrl('language', (string)$data['code'], (string)$data['code'], $store['store_id'], $language['language_id'], -2);
+			}
+		}
+
+		// Topic Status
+		$this->load->model('cms/topic');
+
+		$results = $this->model_cms_topic->getDescriptionsByLanguageId($this->config->get('config_language_id'));
+
+		foreach ($results as $topic) {
+			$this->model_cms_topic->addDescription($topic['topic_id'], $language_id, $topic);
+		}
+
+		// Zone
+		$this->load->model('localisation/zone');
+
+		$results = $this->model_localisation_zone->getDescriptionsByLanguageId($this->config->get('config_language_id'));
+
+		foreach ($results as $zone) {
+			$this->model_localisation_zone->addDescription($zone['zone_id'], $language_id, $zone);
+		}
+
 		return $language_id;
 	}
 
 	/**
 	 * Edit Language
 	 *
-	 * @param int                  $language_id
-	 * @param array<string, mixed> $data
+	 * Edit language record in the database.
+	 *
+	 * @param int                  $language_id primary key of the language record
+	 * @param array<string, mixed> $data        array of data
 	 *
 	 * @return void
+	 *
+	 * @example
+	 *
+	 * $language_data = [
+	 *     'name'       => 'Language Name',
+	 *     'code'       => 'Language Code',
+	 *     'locale'     => 'Language Locale',
+	 *     'extension'  => '',
+	 *     'sort_order' => 0,
+	 *     'status'     => 1
+	 * ];
+	 *
+	 * $this->load->model('localisation/language');
+	 *
+	 * $this->model_localisation_language->editLanguage($language_id, $language_data);
 	 */
 	public function editLanguage(int $language_id, array $data): void {
 		$this->db->query("UPDATE `" . DB_PREFIX . "language` SET `name` = '" . $this->db->escape((string)$data['name']) . "', `code` = '" . $this->db->escape((string)$data['code']) . "', `locale` = '" . $this->db->escape((string)$data['locale']) . "', `extension` = '" . $this->db->escape((string)$data['extension']) . "', `sort_order` = '" . (int)$data['sort_order'] . "', `status` = '" . (bool)($data['status'] ?? 0) . "' WHERE `language_id` = '" . (int)$language_id . "'");
@@ -268,14 +350,29 @@ class Language extends \Opencart\System\Engine\Model {
 	/**
 	 * Delete Language
 	 *
-	 * @param int $language_id
+	 * Delete language record in the database.
+	 *
+	 * @param int $language_id primary key of the language record
 	 *
 	 * @return void
+	 *
+	 * @example
+	 *
+	 * $this->load->model('localisation/language');
+	 *
+	 * $this->model_localisation_language->deleteLanguage($language_id);
 	 */
 	public function deleteLanguage(int $language_id): void {
+		$language_info = $this->getLanguage($language_id);
+
 		$this->db->query("DELETE FROM `" . DB_PREFIX . "language` WHERE `language_id` = '" . (int)$language_id . "'");
 
 		$this->cache->delete('language');
+
+		// Article
+		$this->load->model('cms/article');
+
+		$this->model_cms_article->deleteDescriptionsByLanguageId($language_id);
 
 		// Attribute
 		$this->load->model('catalog/attribute');
@@ -296,6 +393,11 @@ class Language extends \Opencart\System\Engine\Model {
 		$this->load->model('catalog/category');
 
 		$this->model_catalog_category->deleteDescriptionsByLanguageId($language_id);
+
+		// Country
+		$this->load->model('localisation/country');
+
+		$this->model_localisation_country->deleteDescriptionsByLanguageId($language_id);
 
 		// Customer Group
 		$this->load->model('customer/customer_group');
@@ -328,10 +430,15 @@ class Language extends \Opencart\System\Engine\Model {
 
 		$this->model_catalog_information->deleteDescriptionsByLanguageId($language_id);
 
-		// Length
+		// Length Class
 		$this->load->model('localisation/length_class');
 
 		$this->model_localisation_length_class->deleteDescriptionsByLanguageId($language_id);
+
+		// Manufacturer
+		$this->load->model('catalog/manufacturer');
+
+		$this->model_catalog_manufacturer->deleteDescriptionsByLanguageId($language_id);
 
 		// Option
 		$this->load->model('catalog/option');
@@ -370,11 +477,6 @@ class Language extends \Opencart\System\Engine\Model {
 
 		$this->model_localisation_stock_status->deleteStockStatusesByLanguageId($language_id);
 
-		// Voucher Theme
-		$this->load->model('sale/voucher_theme');
-
-		$this->model_sale_voucher_theme->deleteDescriptionsByLanguageId($language_id);
-
 		// Weight Class
 		$this->load->model('localisation/weight_class');
 
@@ -385,18 +487,38 @@ class Language extends \Opencart\System\Engine\Model {
 
 		$this->model_localisation_subscription_status->deleteStockStatusesByLanguageId($language_id);
 
-		// SEO URL
+		// SEO
 		$this->load->model('design/seo_url');
 
 		$this->model_design_seo_url->deleteSeoUrlsByLanguageId($language_id);
+
+		$this->model_design_seo_url->deleteSeoUrlsByKeyValue('language', $language_info['code']);
+
+		// Topic Status
+		$this->load->model('cms/topic');
+
+		$this->model_cms_topic->deleteDescriptionsByLanguageId($language_id);
+
+		// Zone
+		$this->load->model('localisation/zone');
+
+		$this->model_localisation_zone->deleteDescriptionsByLanguageId($language_id);
 	}
 
 	/**
 	 * Get Language
 	 *
-	 * @param int $language_id
+	 * Get the record of the language record in the database.
 	 *
-	 * @return array<string, mixed>
+	 * @param int $language_id primary key of the language record
+	 *
+	 * @return array<string, mixed> language record that has language ID
+	 *
+	 * @example
+	 *
+	 * $this->load->model('localisation/language');
+	 *
+	 * $language_info = $this->model_localisation_language->getLanguage($language_id);
 	 */
 	public function getLanguage(int $language_id): array {
 		$query = $this->db->query("SELECT DISTINCT * FROM `" . DB_PREFIX . "language` WHERE `language_id` = '" . (int)$language_id . "'");
@@ -424,6 +546,12 @@ class Language extends \Opencart\System\Engine\Model {
 	 * @param string $code
 	 *
 	 * @return array<string, mixed>
+	 *
+	 * @example
+	 *
+	 * $this->load->model('localisation/language');
+	 *
+	 * $language_info = $this->model_localisation_language->getLanguageByCode($code);
 	 */
 	public function getLanguageByCode(string $code): array {
 		$query = $this->db->query("SELECT * FROM `" . DB_PREFIX . "language` WHERE `code` = '" . $this->db->escape($code) . "'");
@@ -448,9 +576,24 @@ class Language extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Languages
 	 *
-	 * @param array<string, mixed> $data
+	 * Get the record of the language records in the database.
 	 *
-	 * @return array<string, array<string, mixed>>
+	 * @param array<string, mixed> $data array of filters
+	 *
+	 * @return array<string, array<string, mixed>> language records
+	 *
+	 * @example
+	 *
+	 * $filter_data = [
+	 *     'sort'  => 'name',
+	 *     'order' => 'DESC',
+	 *     'start' => 0,
+	 *     'limit' => 10
+	 * ];
+	 *
+	 * $this->load->model('localisation/language');
+	 *
+	 * $languages = $this->model_localisation_language->getLanguages($filter_data);
 	 */
 	public function getLanguages(array $data = []): array {
 		$sql = "SELECT * FROM `" . DB_PREFIX . "language`";
@@ -506,7 +649,7 @@ class Language extends \Opencart\System\Engine\Model {
 				$image .= 'extension/' . $result['extension'] . '/catalog/';
 			}
 
-			$language_data[$result['code']] = $result + ['image' => $image . 'language/' . $result['code'] . '/' . $result['code'] . '.png'];
+			$language_data[$result['language_id']] = $result + ['image' => $image . 'language/' . $result['code'] . '/' . $result['code'] . '.png'];
 		}
 
 		return $language_data;
@@ -518,6 +661,12 @@ class Language extends \Opencart\System\Engine\Model {
 	 * @param string $extension
 	 *
 	 * @return array<int, array<string, mixed>>
+	 *
+	 * @example
+	 *
+	 * $this->load->model('localisation/language');
+	 *
+	 * $results = $this->model_localisation_language->getLanguagesByExtension($extension);
 	 */
 	public function getLanguagesByExtension(string $extension): array {
 		$query = $this->db->query("SELECT * FROM `" . DB_PREFIX . "language` WHERE `extension` = '" . $this->db->escape($extension) . "'");
@@ -528,7 +677,15 @@ class Language extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Total Languages
 	 *
-	 * @return int
+	 * Get the total number of language records in the database.
+	 *
+	 * @return int total number of language records
+	 *
+	 * @example
+	 *
+	 * $this->load->model('localisation/language');
+	 *
+	 * $language_total = $this->model_localisation_language->getTotalLanguages();
 	 */
 	public function getTotalLanguages(): int {
 		$query = $this->db->query("SELECT COUNT(*) AS `total` FROM `" . DB_PREFIX . "language`");

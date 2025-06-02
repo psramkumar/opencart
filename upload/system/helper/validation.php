@@ -9,7 +9,7 @@
  * @return bool
  */
 function oc_validate_length(string $string, int $minimum, int $maximum): bool {
-	return strlen(trim($string)) >= $minimum && strlen(trim($string)) <= $maximum;
+	return oc_strlen(trim($string)) >= $minimum && oc_strlen(trim($string)) <= $maximum;
 }
 
 /**
@@ -65,7 +65,7 @@ function oc_validate_ip(string $ip): bool {
 }
 
 /**
- * Validate URL
+ * Validate Filename
  *
  * @param string $filename
  *

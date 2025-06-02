@@ -3,18 +3,26 @@ namespace Opencart\Catalog\Model\Checkout;
 /**
  * Class Cart
  *
+ * Can be called using $this->load->model('checkout/cart');
+ *
  * @package Opencart\Catalog\Model\Checkout
  */
 class Cart extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Products
 	 *
-	 * @return array<int, array<string, mixed>>
+	 * @return array<int, array<string, mixed>> product records
+	 *
+	 * @example
+	 *
+	 * $this->load->model('checkout/cart');
+	 *
+	 * $cart = $this->model_checkout_cart->getProducts();
 	 */
 	public function getProducts(): array {
 		$this->load->language('checkout/cart');
 
-		$this->load->model('tool/image');
+		// Upload
 		$this->load->model('tool/upload');
 
 		// Products
@@ -54,20 +62,26 @@ class Cart extends \Opencart\System\Engine\Model {
 					}
 				}
 
-				$option_data[] = [
-					'product_option_id'       => $option['product_option_id'],
-					'product_option_value_id' => $option['product_option_value_id'],
-					'option_id'               => $option['option_id'],
-					'option_value_id'         => $option['option_value_id'],
-					'name'                    => $option['name'],
-					'value'                   => $value,
-					'type'                    => $option['type']
-				];
+				$option_data[] = ['value' => $value] + $option;
+			}
+
+			$subscription_data = [];
+
+			if ($product['subscription']) {
+				$subscription_data = [
+					'trial_frequency_text' => $this->language->get('text_' . $product['subscription']['trial_frequency']),
+					'trial_price'          => $this->tax->calculate($product['subscription']['trial_price'], $product['tax_class_id'], $this->config->get('config_tax')),
+					'frequency_text'       => $this->language->get('text_' . $product['subscription']['frequency']),
+					'price'                => $this->tax->calculate($product['subscription']['price'], $product['tax_class_id'], $this->config->get('config_tax'))
+				] + $product['subscription'];
 			}
 
 			$product_data[] = [
-				'image'  => $this->model_tool_image->resize($image, $this->config->get('config_image_cart_width'), $this->config->get('config_image_cart_height')),
-				'option' => $option_data
+				'image'        => $image,
+				'subscription' => $subscription_data,
+				'option'       => $option_data,
+				'price'        => $this->tax->calculate($product['price'], $product['tax_class_id'], $this->config->get('config_tax')),
+				'total'        => $this->tax->calculate($product['price'], $product['tax_class_id'], $this->config->get('config_tax')) * $product['quantity']
 			] + $product;
 		}
 
@@ -75,32 +89,18 @@ class Cart extends \Opencart\System\Engine\Model {
 	}
 
 	/**
-	 * Get Vouchers
-	 *
-	 * @return array<string, array<string, mixed>>
-	 */
-	public function getVouchers(): array {
-		$voucher_data = [];
-
-		if (!empty($this->session->data['vouchers'])) {
-			$voucher_data = $this->session->data['vouchers'];
-		}
-
-		return $voucher_data;
-	}
-
-	/**
 	 * Get Totals
 	 *
 	 * @param array<int, array<string, mixed>> $totals
 	 * @param array<int, float>                $taxes
-	 * @param int                              $total
+	 * @param float                            $total
 	 *
 	 * @return void
 	 */
-	public function getTotals(array &$totals, array &$taxes, int &$total): void {
+	public function getTotals(array &$totals, array &$taxes, float &$total): void {
 		$sort_order = [];
 
+		// Extensions
 		$this->load->model('setting/extension');
 
 		$results = $this->model_setting_extension->getExtensionsByType('total');

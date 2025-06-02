@@ -7,6 +7,8 @@ namespace Opencart\Catalog\Controller\Product;
  */
 class Compare extends \Opencart\System\Engine\Controller {
 	/**
+	 * Index
+	 *
 	 * @return void
 	 */
 	public function index(): void {
@@ -53,13 +55,21 @@ class Compare extends \Opencart\System\Engine\Controller {
 			$data['success'] = '';
 		}
 
-		$data['products'] = [];
-
+		// Attribute Group
 		$data['attribute_groups'] = [];
 
+		// Product
+		$data['products'] = [];
+
 		$this->load->model('catalog/product');
+
+		// Manufacturer
 		$this->load->model('catalog/manufacturer');
+
+		// Stock Status
 		$this->load->model('localisation/stock_status');
+
+		// Image
 		$this->load->model('tool/image');
 
 		foreach ($this->session->data['compare'] as $key => $product_id) {
@@ -79,13 +89,13 @@ class Compare extends \Opencart\System\Engine\Controller {
 				}
 
 				if ($this->customer->isLogged() || !$this->config->get('config_customer_price')) {
-					$price = $this->currency->format($this->tax->calculate($product_info['price'], $product_info['tax_class_id'], $this->config->get('config_tax')), $this->session->data['currency']);
+					$price = $this->tax->calculate($product_info['price'], $product_info['tax_class_id'], $this->config->get('config_tax'));
 				} else {
 					$price = false;
 				}
 
 				if ((float)$product_info['special']) {
-					$special = $this->currency->format($this->tax->calculate($product_info['special'], $product_info['tax_class_id'], $this->config->get('config_tax')), $this->session->data['currency']);
+					$special = $this->tax->calculate($product_info['special'], $product_info['tax_class_id'], $this->config->get('config_tax'));
 				} else {
 					$special = false;
 				}
@@ -125,13 +135,10 @@ class Compare extends \Opencart\System\Engine\Controller {
 				}
 
 				$data['products'][$product_id] = [
-					'product_id'   => $product_info['product_id'],
-					'name'         => $product_info['name'],
 					'description'  => $description,
 					'thumb'        => $image,
 					'price'        => $price,
 					'special'      => $special,
-					'model'        => $product_info['model'],
 					'manufacturer' => $manufacturer,
 					'availability' => $availability,
 					'minimum'      => $product_info['minimum'] > 0 ? $product_info['minimum'] : 1,
@@ -144,7 +151,7 @@ class Compare extends \Opencart\System\Engine\Controller {
 					'attribute'    => $attribute_data,
 					'href'         => $this->url->link('product/product', 'language=' . $this->config->get('config_language') . '&product_id=' . $product_id),
 					'remove'       => $this->url->link('product/compare', 'language=' . $this->config->get('config_language') . '&remove=' . $product_id)
-				];
+				] + $product_info;
 
 				foreach ($attribute_groups as $attribute_group) {
 					$data['attribute_groups'][$attribute_group['attribute_group_id']]['name'] = $attribute_group['name'];
@@ -158,7 +165,11 @@ class Compare extends \Opencart\System\Engine\Controller {
 			}
 		}
 
+		$data['review_status'] = $this->config->get('config_review_status');
+
 		$data['continue'] = $this->url->link('common/home', 'language=' . $this->config->get('config_language'));
+
+		$data['currency'] = $this->session->data['currency'];
 
 		$data['column_left'] = $this->load->controller('common/column_left');
 		$data['column_right'] = $this->load->controller('common/column_right');
@@ -190,6 +201,7 @@ class Compare extends \Opencart\System\Engine\Controller {
 			$product_id = 0;
 		}
 
+		// Product
 		$this->load->model('catalog/product');
 
 		$product_info = $this->model_catalog_product->getProduct($product_id);
@@ -200,7 +212,7 @@ class Compare extends \Opencart\System\Engine\Controller {
 
 		if (!$json) {
 			// If already in array remove the product_id so it will be added to the back of the array
-			$key = array_search($this->request->post['product_id'], $this->session->data['compare']);
+			$key = array_search($product_info['product_id'], $this->session->data['compare']);
 
 			if ($key !== false) {
 				unset($this->session->data['compare'][$key]);
@@ -211,9 +223,9 @@ class Compare extends \Opencart\System\Engine\Controller {
 				array_shift($this->session->data['compare']);
 			}
 
-			$this->session->data['compare'][] = $this->request->post['product_id'];
+			$this->session->data['compare'][] = $product_info['product_id'];
 
-			$json['success'] = sprintf($this->language->get('text_success'), $this->url->link('product/product', 'language=' . $this->config->get('config_language') . '&product_id=' . $this->request->post['product_id']), $product_info['name'], $this->url->link('product/compare', 'language=' . $this->config->get('config_language')));
+			$json['success'] = sprintf($this->language->get('text_success'), $this->url->link('product/product', 'language=' . $this->config->get('config_language') . '&product_id=' . $product_info['product_id']), $product_info['name'], $this->url->link('product/compare', 'language=' . $this->config->get('config_language')));
 
 			$json['total'] = sprintf($this->language->get('text_compare'), (isset($this->session->data['compare']) ? count($this->session->data['compare']) : 0));
 		}

@@ -7,16 +7,18 @@ namespace Opencart\Catalog\Controller\Startup;
  */
 class Setting extends \Opencart\System\Engine\Controller {
 	/**
+	 * Index
+	 *
 	 * @return void
 	 */
 	public function index(): void {
 		$hostname = ($this->request->server['HTTPS'] ? 'https://' : 'http://') . str_replace('www.', '', $this->request->server['HTTP_HOST']) . rtrim(dirname($this->request->server['PHP_SELF']), '/.\\') . '/';
 
+		// Setting
 		$this->load->model('setting/store');
 
 		$store_info = $this->model_setting_store->getStoreByHostname($hostname);
 
-		// Store
 		if (isset($this->request->get['store_id'])) {
 			$this->config->set('config_store_id', (int)$this->request->get['store_id']);
 		} elseif ($store_info) {
@@ -34,7 +36,6 @@ class Setting extends \Opencart\System\Engine\Controller {
 			}
 		}
 
-		// Settings
 		$this->load->model('setting/setting');
 
 		$results = $this->model_setting_setting->getSettings((int)$this->config->get('config_store_id'));

@@ -61,6 +61,7 @@ class ProductPurchased extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Setting
 			$this->load->model('setting/setting');
 
 			$this->model_setting_setting->editSetting('report_product_purchased', $this->request->post);
@@ -82,6 +83,7 @@ class ProductPurchased extends \Opencart\System\Engine\Controller {
 
 		$data['list'] = $this->getReport();
 
+		// Order Statuses
 		$this->load->model('localisation/order_status');
 
 		$data['order_statuses'] = $this->model_localisation_order_status->getOrderStatuses();
@@ -132,6 +134,7 @@ class ProductPurchased extends \Opencart\System\Engine\Controller {
 			$page = 1;
 		}
 
+		// Product Purchased
 		$data['products'] = [];
 
 		$filter_data = [
@@ -142,20 +145,13 @@ class ProductPurchased extends \Opencart\System\Engine\Controller {
 			'limit'                  => $this->config->get('config_pagination')
 		];
 
+		// Extension
 		$this->load->model('extension/opencart/report/product_purchased');
 
+		// Total Products
 		$product_total = $this->model_extension_opencart_report_product_purchased->getTotalPurchased($filter_data);
 
-		$results = $this->model_extension_opencart_report_product_purchased->getPurchased($filter_data);
-
-		foreach ($results as $result) {
-			$data['products'][] = [
-				'name'     => $result['name'],
-				'model'    => $result['model'],
-				'quantity' => $result['quantity'],
-				'total'    => $this->currency->format($result['total'], $this->config->get('config_currency'))
-			];
-		}
+		$data['products'] = $this->model_extension_opencart_report_product_purchased->getPurchased($filter_data);
 
 		$url = '';
 
@@ -171,6 +167,7 @@ class ProductPurchased extends \Opencart\System\Engine\Controller {
 			$url .= '&filter_order_status_id=' . $this->request->get['filter_order_status_id'];
 		}
 
+		// Pagination
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $product_total,
 			'page'  => $page,
@@ -183,6 +180,8 @@ class ProductPurchased extends \Opencart\System\Engine\Controller {
 		$data['filter_date_start'] = $filter_date_start;
 		$data['filter_date_end'] = $filter_date_end;
 		$data['filter_order_status_id'] = $filter_order_status_id;
+
+		$data['currency'] = $this->config->get('config_currency');
 
 		$data['user_token'] = $this->session->data['user_token'];
 

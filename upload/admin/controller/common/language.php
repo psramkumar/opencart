@@ -3,6 +3,8 @@ namespace Opencart\Admin\Controller\Common;
 /**
  * Class Language
  *
+ * Can be loaded using $this->load->controller('common/language');
+ *
  * @package Opencart\Admin\Controller\Common
  */
 class Language extends \Opencart\System\Engine\Controller {
@@ -12,6 +14,7 @@ class Language extends \Opencart\System\Engine\Controller {
 	 * @return string
 	 */
 	public function index(): string {
+		// Languages
 		$data['languages'] = [];
 
 		$this->load->model('localisation/language');
@@ -29,7 +32,7 @@ class Language extends \Opencart\System\Engine\Controller {
 		if (isset($this->request->cookie['language'])) {
 			$data['code'] = $this->request->cookie['language'];
 		} else {
-			$data['code'] = $this->config->get('config_language');
+			$data['code'] = $this->config->get('config_language_admin');
 		}
 
 		// Redirect
@@ -67,17 +70,18 @@ class Language extends \Opencart\System\Engine\Controller {
 		$json = [];
 
 		if (isset($this->request->post['code'])) {
-			$code = $this->request->post['code'];
+			$code = (string)$this->request->post['code'];
 		} else {
 			$code = '';
 		}
 
 		if (isset($this->request->post['redirect'])) {
-			$redirect = html_entity_decode($this->request->post['redirect'], ENT_QUOTES, 'UTF-8');
+			$redirect = html_entity_decode((string)$this->request->post['redirect'], ENT_QUOTES, 'UTF-8');
 		} else {
 			$redirect = '';
 		}
 
+		// Language
 		$this->load->model('localisation/language');
 
 		$language_info = $this->model_localisation_language->getLanguageByCode($code);
@@ -90,6 +94,7 @@ class Language extends \Opencart\System\Engine\Controller {
 			$option = [
 				'expires'  => time() + 60 * 60 * 24 * 365 * 10,
 				'path'     => $this->config->get('session_path'),
+				'secure'   => $this->request->server['HTTPS'],
 				'SameSite' => $this->config->get('config_session_samesite')
 			];
 

@@ -1,48 +1,49 @@
 <?php
-namespace Opencart\catalog\controller\api;
+namespace Opencart\catalog\Controller\Api;
 /**
  * Class Customer
+ *
+ * Can be loaded using $this->load->controller('api/customer');
  *
  * @package Opencart\Catalog\Controller\Api
  */
 class Customer extends \Opencart\System\Engine\Controller {
 	/**
-	 * @return void
+	 * Index
+	 *
+	 * @return array<string, mixed>
 	 */
-	public function index(): void {
-		$this->load->language('api/sale/customer');
+	public function index(): array {
+		$this->load->language('api/customer');
 
-		$json = [];
+		$output = [];
 
-		$keys = [
-			'customer_id',
-			'customer_group_id',
-			'firstname',
-			'lastname',
-			'email',
-			'telephone',
-			'custom_field'
+		$required = [
+			'customer_id'       => 0,
+			'customer_group_id' => 0,
+			'firstname'         => '',
+			'lastname'          => '',
+			'email'             => '',
+			'telephone'         => '',
+			'custom_field'      => []
 		];
 
-		foreach ($keys as $key) {
-			if (!isset($this->request->post[$key])) {
-				$this->request->post[$key] = '';
-			}
-		}
+		$post_info = $this->request->post + $required;
 
-		$this->load->model('account/customer');
+		// Customer
+		if ($post_info['customer_id']) {
+			$this->load->model('account/customer');
 
-		if ($this->request->post['customer_id']) {
-			$customer_info = $this->model_account_customer->getCustomer($this->request->post['customer_id']);
+			$customer_info = $this->model_account_customer->getCustomer($post_info['customer_id']);
 
 			if (!$customer_info) {
-				$json['error']['warning'] = $this->language->get('error_customer');
+				$output['error']['warning'] = $this->language->get('error_customer');
 			}
 		}
 
 		// Customer Group
-		if ($this->request->post['customer_group_id']) {
-			$customer_group_id = (int)$this->request->post['customer_group_id'];
+		if ($post_info['customer_group_id']) {
+			$customer_group_id = (int)$post_info['customer_group_id'];
 		} else {
 			$customer_group_id = (int)$this->config->get('config_customer_group_id');
 		}
@@ -52,55 +53,57 @@ class Customer extends \Opencart\System\Engine\Controller {
 		$customer_group_info = $this->model_account_customer_group->getCustomerGroup($customer_group_id);
 
 		if (!$customer_group_info) {
-			$json['error']['warning'] = $this->language->get('error_customer_group');
+			$output['error']['customer_group'] = $this->language->get('error_customer_group');
 		}
 
-		if (!oc_validate_length($this->request->post['firstname'], 1, 32)) {
-			$json['error']['firstname'] = $this->language->get('error_firstname');
+		if (!oc_validate_length($post_info['firstname'], 1, 32)) {
+			$output['error']['firstname'] = $this->language->get('error_firstname');
 		}
 
-		if (!oc_validate_length($this->request->post['lastname'], 1, 32)) {
-			$json['error']['lastname'] = $this->language->get('error_lastname');
+		if (!oc_validate_length($post_info['lastname'], 1, 32)) {
+			$output['error']['lastname'] = $this->language->get('error_lastname');
 		}
 
-		if (!oc_validate_email($this->request->post['email'])) {
-			$json['error']['email'] = $this->language->get('error_email');
+		if (!oc_validate_email($post_info['email'])) {
+			$output['error']['email'] = $this->language->get('error_email');
 		}
 
-		if ($this->config->get('config_telephone_required') && !oc_validate_length($this->request->post['telephone'], 3, 32)) {
-			$json['error']['telephone'] = $this->language->get('error_telephone');
+		if ($this->config->get('config_telephone_required') && !oc_validate_length($post_info['telephone'], 3, 32)) {
+			$output['error']['telephone'] = $this->language->get('error_telephone');
 		}
 
-		// Custom field validation
+		// Custom fields validation
 		$this->load->model('account/custom_field');
 
 		$custom_fields = $this->model_account_custom_field->getCustomFields((int)$customer_group_id);
 
 		foreach ($custom_fields as $custom_field) {
 			if ($custom_field['location'] == 'account') {
-				if ($custom_field['required'] && empty($this->request->post['custom_field'][$custom_field['custom_field_id']])) {
-					$json['error']['custom_field_' . $custom_field['custom_field_id']] = sprintf($this->language->get('error_custom_field'), $custom_field['name']);
-				} elseif (($custom_field['type'] == 'text') && !empty($custom_field['validation']) && !oc_validate_regex($this->request->post['custom_field'][$custom_field['custom_field_id']], $custom_field['validation'])) {
-					$json['error']['custom_field_' . $custom_field['custom_field_id']] = sprintf($this->language->get('error_regex'), $custom_field['name']);
+				if ($custom_field['required'] && empty($post_info['custom_field'][$custom_field['custom_field_id']])) {
+					$output['error']['custom_field_' . $custom_field['custom_field_id']] = sprintf($this->language->get('error_custom_field'), $custom_field['name']);
+				} elseif (($custom_field['type'] == 'text') && !empty($custom_field['validation']) && !oc_validate_regex($post_info['custom_field'][$custom_field['custom_field_id']], $custom_field['validation'])) {
+					$output['error']['custom_field_' . $custom_field['custom_field_id']] = sprintf($this->language->get('error_regex'), $custom_field['name']);
 				}
 			}
 		}
 
-		if (!$json) {
+		if (!$output) {
+			// Log the customer in
+			$this->customer->login($post_info['email'], '', true);
+
 			$this->session->data['customer'] = [
-				'customer_id'       => $this->request->post['customer_id'],
-				'customer_group_id' => $this->request->post['customer_group_id'],
-				'firstname'         => $this->request->post['firstname'],
-				'lastname'          => $this->request->post['lastname'],
-				'email'             => $this->request->post['email'],
-				'telephone'         => $this->request->post['telephone'],
-				'custom_field'      => !empty($this->request->post['custom_field']) && is_array($this->request->post['custom_field']) ? $this->request->post['custom_field'] : []
+				'customer_id'       => $post_info['customer_id'],
+				'customer_group_id' => $post_info['customer_group_id'],
+				'firstname'         => $post_info['firstname'],
+				'lastname'          => $post_info['lastname'],
+				'email'             => $post_info['email'],
+				'telephone'         => $post_info['telephone'],
+				'custom_field'      => $post_info['custom_field'] ?? []
 			];
 
-			$json['success'] = $this->language->get('text_success');
-
-			$this->response->addHeader('Content-Type: application/json');
-			$this->response->setOutput(json_encode($json));
+			$output['success'] = $this->language->get('text_success');
 		}
+
+		return $output;
 	}
 }

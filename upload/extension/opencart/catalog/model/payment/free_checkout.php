@@ -1,7 +1,9 @@
 <?php
 namespace Opencart\Catalog\Model\Extension\Opencart\Payment;
 /**
- * Class FreeCheckout
+ * Class Free Checkout
+ *
+ * Can be called from $this->load->model('extension/opencart/payment/free_checkout');
  *
  * @package Opencart\Catalog\Model\Extension\Opencart\Payment
  */
@@ -9,7 +11,7 @@ class FreeCheckout extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Methods
 	 *
-	 * @param array<string, mixed> $address
+	 * @param array<string, mixed> $address array of data
 	 *
 	 * @return array<string, mixed>
 	 */
@@ -21,17 +23,10 @@ class FreeCheckout extends \Opencart\System\Engine\Model {
 		$taxes = $this->cart->getTaxes();
 		$total = 0;
 
+		// Cart
 		$this->load->model('checkout/cart');
 
 		($this->model_checkout_cart->getTotals)($totals, $taxes, $total);
-
-		if (!empty($this->session->data['vouchers'])) {
-			$amounts = array_column($this->session->data['vouchers'], 'amount');
-		} else {
-			$amounts = [];
-		}
-
-		$total += array_sum($amounts);
 
 		if ($this->currency->format($total, $this->config->get('config_currency'), false, false) <= 0.00) {
 			$status = true;

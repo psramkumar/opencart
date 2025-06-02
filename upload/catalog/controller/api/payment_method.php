@@ -3,82 +3,121 @@ namespace Opencart\catalog\controller\api;
 /**
  * Class Payment Method
  *
+ * Can be loaded using $this->load->controller('api/payment_method');
+ *
  * @package Opencart\Catalog\Controller\Api
  */
 class PaymentMethod extends \Opencart\System\Engine\Controller {
 	/**
-	 * @return void
+	 * Index
+	 *
+	 * @return array<string, mixed>
 	 */
-	public function index(): void {
-		$this->load->language('api/sale/payment_method');
+	public function index(): array {
+		$this->load->language('api/payment_method');
 
-		$json = [];
+		$output = [];
 
-		if (!$this->cart->hasProducts() && empty($this->session->data['vouchers'])) {
-			$json['error'] = $this->language->get('error_product');
+		$required = [
+			'name' => '',
+			'code' => ''
+		];
+
+		$post_info = $this->request->post + $required;
+
+		// 1. Validate customer data exists
+		if (!isset($this->session->data['customer'])) {
+			$output['error'] = $this->language->get('error_customer');
 		}
 
-		if ($this->config->get('config_checkout_payment_address') && !isset($this->session->data['payment_address'])) {
-			$json['error'] = $this->language->get('error_payment_address');
+		// 2. Validate cart has products
+		if (!$this->cart->hasProducts()) {
+			$output['error'] = $this->language->get('error_product');
 		}
 
-		if (!$json) {
-			$payment_address = [];
-
-			if (isset($this->session->data['payment_address'])) {
-				$payment_address = $this->session->data['payment_address'];
-			} elseif ($this->config->get('config_checkout_shipping_address') && isset($this->session->data['shipping_address'])) {
-				$payment_address = $this->session->data['shipping_address'];
+		// 3. Validate shipping address and method, if required
+		if ($this->cart->hasShipping()) {
+			if (!isset($this->session->data['shipping_address'])) {
+				$output['error'] = $this->language->get('error_shipping_address');
 			}
 
+			if (!isset($this->session->data['shipping_method'])) {
+				$output['error'] = $this->language->get('error_shipping_method');
+			}
+		}
+
+		// 4. Validate payment address, if required
+		if ($this->config->get('config_checkout_payment_address') && !isset($this->session->data['payment_address'])) {
+			$output['error'] = $this->language->get('error_payment_address');
+		}
+
+		if (!$output) {
+			$this->session->data['payment_method'] = [
+				'name' => $post_info['payment_method']['name'],
+				'code' => $post_info['payment_method']['code']
+			];
+
+			$output['success'] = $this->language->get('text_success');
+		}
+
+		return $output;
+	}
+
+	/**
+	 * Get Payment Methods
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function getPaymentMethods(): array {
+		$this->load->language('api/payment_method');
+
+		$output = [];
+
+		// 1. Validate customer data exists
+		if (!isset($this->session->data['customer'])) {
+			$output['error'] = $this->language->get('error_customer');
+		}
+
+		// 2. Validate cart has products
+		if (!$this->cart->hasProducts()) {
+			$output['error'] = $this->language->get('error_product');
+		}
+
+		// 3. Validate shipping address and method, if required
+		if ($this->cart->hasShipping()) {
+			if (!isset($this->session->data['shipping_address'])) {
+				$output['error'] = $this->language->get('error_shipping_address');
+			}
+
+			if (!isset($this->session->data['shipping_method'])) {
+				$output['error'] = $this->language->get('error_shipping_method');
+			}
+		}
+
+		// 4. Validate payment address, if required
+		if ($this->config->get('config_checkout_payment_address') && !isset($this->session->data['payment_address'])) {
+			$output['error'] = $this->language->get('error_payment_address');
+		}
+
+		if (!$output) {
+			if (isset($this->session->data['payment_address'])) {
+				$payment_address = $this->session->data['payment_address'];
+			} else {
+				$payment_address = [];
+			}
+
+			// Payment Methods
 			$this->load->model('checkout/payment_method');
 
 			$payment_methods = $this->model_checkout_payment_method->getMethods($payment_address);
 
 			if ($payment_methods) {
-				$json['payment_methods'] = $this->session->data['payment_methods'] = $payment_methods;
+				$output['payment_methods'] = $payment_methods;
 			} else {
-				$json['error'] = $this->language->get('error_no_payment');
+				$output['error'] = $this->language->get('error_no_payment');
 			}
 		}
 
-		$this->response->addHeader('Content-Type: application/json');
-		$this->response->setOutput(json_encode($json));
-	}
-
-	/**
-	 * Save
-	 *
-	 * @return void
-	 */
-	public function save(): void {
-		$this->load->language('api/sale/payment_method');
-
-		$json = [];
-
-		// Payment Address
-		if ($this->config->get('config_checkout_payment_address') && !isset($this->session->data['payment_address'])) {
-			$json['error'] = $this->language->get('error_payment_address');
-		}
-
-		// Payment Method
-		if (isset($this->request->post['payment_method']) && isset($this->session->data['payment_methods'])) {
-			$payment = explode('.', $this->request->post['payment_method']);
-
-			if (!isset($payment[0]) || !isset($payment[1]) || !isset($this->session->data['payment_methods'][$payment[0]]['option'][$payment[1]])) {
-				$json['error'] = $this->language->get('error_payment_method');
-			}
-		} else {
-			$json['error'] = $this->language->get('error_payment_method');
-		}
-
-		if (!$json) {
-			$json['success'] = $this->language->get('text_success');
-
-			$this->session->data['payment_method'] = $this->session->data['payment_methods'][$payment[0]]['option'][$payment[1]];
-		}
-
-		$this->response->addHeader('Content-Type: application/json');
-		$this->response->setOutput(json_encode($json));
+		return $output;
 	}
 }

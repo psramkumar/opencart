@@ -1,12 +1,14 @@
 <?php
-namespace Opencart\catalog\controller\startup;
+namespace Opencart\Catalog\Controller\Startup;
 /**
  * Class Authorize
  *
- * @package Opencart\Admin\Controller\Startup
+ * @package Opencart\Catalog\Controller\Startup
  */
 class Authorize extends \Opencart\System\Engine\Controller {
 	/**
+	 * Index
+	 *
 	 * @return \Opencart\System\Engine\Action|null
 	 */
 	public function index(): ?\Opencart\System\Engine\Action {
@@ -16,8 +18,8 @@ class Authorize extends \Opencart\System\Engine\Controller {
 			$route = '';
 		}
 
-		if (isset($this->request->cookie['authorize'])) {
-			$token = (string)$this->request->cookie['authorize'];
+		if (isset($this->request->cookie['customer_authorize'])) {
+			$token = (string)$this->request->cookie['customer_authorize'];
 		} else {
 			$token = '';
 		}
@@ -29,24 +31,35 @@ class Authorize extends \Opencart\System\Engine\Controller {
 			$route = substr($route, 0, $pos);
 		}
 
-		$ignore = [
-			'account/login',
-			'account/logout',
-			'account/forgotten',
-			'account/authorize'
-		];
+		// Block access to 2fa, if logged in
+		if ($route == 'account/authorize' && !$this->config->get('config_2fa')) {
+			$this->response->redirect($this->url->link('common/home', 'language=' . $this->config->get('config_language'), true));
+		}
 
-		if ($this->config->get('config_security') && !in_array($route, $ignore)) {
-			$this->load->model('user/user');
+		if ($this->config->get('config_2fa') && $this->customer->isLogged()) {
+			// If already logged in and token is valid, redirect to account page to stop direct access.
+			$this->load->model('account/customer');
 
-			$token_info = $this->model_user_user->getAuthorizeByToken($this->user->getId(), $token);
+			$token_info = $this->model_account_customer->getAuthorizeByToken($this->customer->getId(), $token);
 
-			if (!$token_info || !$token_info['status'] && $token_info['attempts'] <= 2) {
-				return new \Opencart\System\Engine\Action('common/authorize');
+			if ($token_info && $token_info['status']) {
+				return null;
 			}
 
-			if ($token_info && !$token_info['status'] && $token_info['attempts'] > 2) {
-				return new \Opencart\System\Engine\Action('common/authorize.unlock');
+			// Don't force redirect to authorize page if already on authorize page.
+			$ignore = [
+				'account/authorize',
+				'account/logout'
+			];
+
+			if (!in_array($route, $ignore)) {
+				if ($token_info && !$token_info['status'] && $token_info['total'] > 2) {
+					return new \Opencart\System\Engine\Action('account/authorize.reset');
+				}
+
+				if (!$token_info || !$token_info['status'] && $token_info['total'] <= 2) {
+					return new \Opencart\System\Engine\Action('account/authorize');
+				}
 			}
 		}
 

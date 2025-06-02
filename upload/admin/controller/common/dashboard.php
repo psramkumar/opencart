@@ -3,6 +3,8 @@ namespace Opencart\Admin\Controller\Common;
 /**
  * Class Dashboard
  *
+ * Can be loaded using $this->load->controller('common/dashboard');
+ *
  * @package Opencart\Admin\Controller\Common
  */
 class Dashboard extends \Opencart\System\Engine\Controller {
@@ -41,8 +43,7 @@ class Dashboard extends \Opencart\System\Engine\Controller {
 			if ($this->config->get('dashboard_' . $extension['code'] . '_status') && $this->user->hasPermission('access', 'extension/' . $extension['extension'] . '/dashboard/' . $extension['code'])) {
 				$output = $this->load->controller('extension/' . $extension['extension'] . '/dashboard/' . $extension['code'] . '.dashboard');
 
-				//if (!$output instanceof \Exception) {
-				if ($output) {
+				if (!$output instanceof \Exception) {
 					$dashboards[] = [
 						'code'       => $extension['code'],
 						'width'      => $this->config->get('dashboard_' . $extension['code'] . '_width'),

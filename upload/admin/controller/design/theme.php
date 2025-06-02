@@ -3,6 +3,8 @@ namespace Opencart\Admin\Controller\Design;
 /**
  * Class Theme
  *
+ * Can be loaded using $this->load->controller('design/theme');
+ *
  * @package Opencart\Admin\Controller\Design
  */
 class Theme extends \Opencart\System\Engine\Controller {
@@ -37,7 +39,7 @@ class Theme extends \Opencart\System\Engine\Controller {
 		$data['add'] = $this->url->link('design/theme.form', 'user_token=' . $this->session->data['user_token'] . $url);
 		$data['delete'] = $this->url->link('design/theme.delete', 'user_token=' . $this->session->data['user_token']);
 
-		$data['list'] = $this->controller_design_theme->getList();
+		$data['list'] = $this->load->controller('design/theme.getList');
 
 		$data['user_token'] = $this->session->data['user_token'];
 
@@ -56,7 +58,7 @@ class Theme extends \Opencart\System\Engine\Controller {
 	public function list(): void {
 		$this->load->language('design/theme');
 
-		$this->response->setOutput($this->controller_design_theme->getList());
+		$this->response->setOutput($this->load->controller('design/theme.getList'));
 	}
 
 	/**
@@ -83,7 +85,10 @@ class Theme extends \Opencart\System\Engine\Controller {
 
 		$data['themes'] = [];
 
+		// Themes
 		$this->load->model('design/theme');
+
+		// Setting
 		$this->load->model('setting/store');
 
 		$results = $this->model_design_theme->getThemes(($page - 1) * $this->config->get('config_pagination_admin'), $this->config->get('config_pagination_admin'));
@@ -98,18 +103,17 @@ class Theme extends \Opencart\System\Engine\Controller {
 			}
 
 			$data['themes'][] = [
-				'theme_id'   => $result['theme_id'],
-				'route'      => $result['route'],
 				'store'      => ($result['store_id'] ? $store : $this->language->get('text_default')),
-				'status'     => $result['status'] ? $this->language->get('text_enabled') : $this->language->get('text_disabled'),
 				'date_added' => date($this->language->get('date_format_short'), strtotime($result['date_added'])),
 				'edit'       => $this->url->link('design/theme.form', 'user_token=' . $this->session->data['user_token'] . '&theme_id=' . $result['theme_id']),
 				'delete'     => $this->url->link('design/theme.delete', 'user_token=' . $this->session->data['user_token'] . '&theme_id=' . $result['theme_id'])
-			];
+			] + $result;
 		}
 
+		// Total Themes
 		$theme_total = $this->model_design_theme->getTotalThemes();
 
+		// Pagination
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $theme_total,
 			'page'  => $page,
@@ -155,18 +159,20 @@ class Theme extends \Opencart\System\Engine\Controller {
 		$data['save'] = $this->url->link('design/theme.save', 'user_token=' . $this->session->data['user_token']);
 		$data['back'] = $this->url->link('design/theme', 'user_token=' . $this->session->data['user_token'] . $url);
 
-		if (isset($this->request->get['theme_id']) && ($this->request->server['REQUEST_METHOD'] != 'POST')) {
+		// Theme
+		if (isset($this->request->get['theme_id'])) {
 			$this->load->model('design/theme');
 
-			$theme_info = $this->model_design_theme->getTheme($this->request->get['theme_id']);
+			$theme_info = $this->model_design_theme->getTheme((int)$this->request->get['theme_id']);
 		}
 
-		if (isset($this->request->get['theme_id'])) {
-			$data['theme_id'] = (int)$this->request->get['theme_id'];
+		if (!empty($theme_info)) {
+			$data['theme_id'] = $theme_info['theme_id'];
 		} else {
 			$data['theme_id'] = 0;
 		}
 
+		// Setting
 		$this->load->model('setting/store');
 
 		$data['stores'] = $this->model_setting_store->getStores();
@@ -210,8 +216,6 @@ class Theme extends \Opencart\System\Engine\Controller {
 		// We grab the files from the extension template directory
 		$data['extensions'] = [];
 
-		$files = [];
-
 		$extensions = glob(DIR_EXTENSION . '*', GLOB_ONLYDIR);
 
 		foreach ($extensions as $extension) {
@@ -220,6 +224,8 @@ class Theme extends \Opencart\System\Engine\Controller {
 			$path = DIR_EXTENSION . $extension . '/catalog/view/template';
 
 			$directory = [$path];
+
+			$files = [];
 
 			while (count($directory) != 0) {
 				$next = array_shift($directory);
@@ -324,11 +330,14 @@ class Theme extends \Opencart\System\Engine\Controller {
 
 		$json = [];
 
-		if (isset($this->request->post['route'])) {
-			$route = $this->request->post['route'];
-		} else {
-			$route = '';
-		}
+		$required = [
+			'theme_id' => 0,
+			'route'    => '',
+			'code'     => '',
+			'status'   => 0
+		];
+
+		$post_info = $this->request->post + $required;
 
 		// Check user has permission
 		if (!$this->user->hasPermission('modify', 'design/theme')) {
@@ -336,15 +345,15 @@ class Theme extends \Opencart\System\Engine\Controller {
 		}
 
 		$directory = DIR_CATALOG . 'view/template';
-		$file = $directory . '/' . $route . '.twig';
+		$file = $directory . '/' . (string)$post_info['route'] . '.twig';
 
 		if (!is_file($file) || (substr(str_replace('\\', '/', realpath($file)), 0, strlen($directory)) != $directory)) {
 			$json['error'] = $this->language->get('error_file');
 		}
 
 		// Extension template load
-		if (substr($route, 0, 10) == 'extension/') {
-			$part = explode('/', $route);
+		if (substr($post_info['route'], 0, 10) == 'extension/') {
+			$part = explode('/', $post_info['route']);
 
 			$directory = DIR_EXTENSION . $part[1] . '/catalog/view/template';
 
@@ -361,12 +370,13 @@ class Theme extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Theme
 			$this->load->model('design/theme');
 
-			if (!$this->request->post['theme_id']) {
-				$json['theme_id'] = $this->model_design_theme->addTheme($this->request->post);
+			if (!$post_info['theme_id']) {
+				$json['theme_id'] = $this->model_design_theme->addTheme($post_info);
 			} else {
-				$this->model_design_theme->editTheme($this->request->post['theme_id'], $this->request->post);
+				$this->model_design_theme->editTheme($post_info['theme_id'], $post_info);
 			}
 
 			$json['success'] = $this->language->get('text_success');
@@ -387,7 +397,7 @@ class Theme extends \Opencart\System\Engine\Controller {
 		$json = [];
 
 		if (isset($this->request->post['selected'])) {
-			$selected = $this->request->post['selected'];
+			$selected = (array)$this->request->post['selected'];
 		} else {
 			$selected = [];
 		}
@@ -402,6 +412,7 @@ class Theme extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Theme
 			$this->load->model('design/theme');
 
 			foreach ($selected as $theme_id) {

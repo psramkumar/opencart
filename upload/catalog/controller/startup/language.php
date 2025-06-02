@@ -1,5 +1,6 @@
 <?php
 namespace Opencart\Catalog\Controller\Startup;
+use Opencart\System\Engine\Action;
 /**
  * Class Language
  *
@@ -16,35 +17,42 @@ class Language extends \Opencart\System\Engine\Controller {
 	 *
 	 * @return void
 	 */
-	public function index(): void {
+	public function index(): ?\Opencart\System\Engine\Action {
+		// Languages
 		$this->load->model('localisation/language');
 
 		self::$languages = $this->model_localisation_language->getLanguages();
 
-		$language_info = [];
+		$code = '';
 
 		// Set default language
-		if (isset(self::$languages[$this->config->get('config_language_catalog')])) {
-			$language_info = self::$languages[$this->config->get('config_language_catalog')];
+		if (!isset($this->request->get['route']) && !isset($this->request->get['language'])) {
+			$code = $this->config->get('config_language_catalog');
 		}
 
 		// If GET has language var
 		if (isset($this->request->get['language']) && isset(self::$languages[$this->request->get['language']])) {
-			$language_info = self::$languages[$this->request->get['language']];
+			$code = $this->request->get['language'];
 		}
 
-		if ($language_info) {
+		if ($code) {
 			// If extension switch add language directory
-			if ($language_info['extension']) {
-				$this->language->addPath('extension/' . $language_info['extension'], DIR_EXTENSION . $language_info['extension'] . '/catalog/language/');
+			if (self::$languages[$code]['extension']) {
+				$this->language->addPath('extension/' . self::$languages[$code]['extension'], DIR_EXTENSION . self::$languages[$code]['extension'] . '/catalog/language/');
 			}
 
 			// Set the config language_id key
-			$this->config->set('config_language_id', $language_info['language_id']);
-			$this->config->set('config_language', $language_info['code']);
+			$this->config->set('config_language_id', self::$languages[$code]['language_id']);
+			$this->config->set('config_language', self::$languages[$code]['code']);
 
 			$this->load->language('default');
+		} else {
+			$this->config->set('config_language', $this->config->get('language_code'));
+
+			$this->request->get['route'] = 'error/not_found';
 		}
+
+		return null;
 	}
 
 	/**

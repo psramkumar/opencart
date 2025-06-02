@@ -69,6 +69,7 @@ class Customer extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Setting
 			$this->load->model('setting/setting');
 
 			$this->model_setting_setting->editSetting('dashboard_customer', $this->request->post);
@@ -90,13 +91,11 @@ class Customer extends \Opencart\System\Engine\Controller {
 
 		$data['user_token'] = $this->session->data['user_token'];
 
-		// Total Orders
+		// Total Customers
 		$this->load->model('customer/customer');
 
 		$today = $this->model_customer_customer->getTotalCustomers(['filter_date_added' => date('Y-m-d', strtotime('-1 day'))]);
-
 		$yesterday = $this->model_customer_customer->getTotalCustomers(['filter_date_added' => date('Y-m-d', strtotime('-2 day'))]);
-
 		$difference = $today - $yesterday;
 
 		if ($difference && $today) {
@@ -105,6 +104,7 @@ class Customer extends \Opencart\System\Engine\Controller {
 			$data['percentage'] = 0;
 		}
 
+		// Total Customers
 		$customer_total = $this->model_customer_customer->getTotalCustomers();
 
 		if ($customer_total > 1000000000000) {

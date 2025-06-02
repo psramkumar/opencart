@@ -7,6 +7,8 @@ namespace Opencart\Catalog\Controller\Product;
  */
 class Special extends \Opencart\System\Engine\Controller {
 	/**
+	 * Index
+	 *
 	 * @return void
 	 */
 	public function index(): void {
@@ -72,6 +74,7 @@ class Special extends \Opencart\System\Engine\Controller {
 
 		$data['compare'] = $this->url->link('product/compare', 'language=' . $this->config->get('config_language'));
 
+		// Products
 		$data['products'] = [];
 
 		$filter_data = [
@@ -82,6 +85,8 @@ class Special extends \Opencart\System\Engine\Controller {
 		];
 
 		$this->load->model('catalog/product');
+
+		// Image
 		$this->load->model('tool/image');
 
 		$results = $this->model_catalog_product->getSpecials($filter_data);
@@ -100,35 +105,32 @@ class Special extends \Opencart\System\Engine\Controller {
 			}
 
 			if ($this->customer->isLogged() || !$this->config->get('config_customer_price')) {
-				$price = $this->currency->format($this->tax->calculate($result['price'], $result['tax_class_id'], $this->config->get('config_tax')), $this->session->data['currency']);
+				$price = $this->tax->calculate($result['price'], $result['tax_class_id'], $this->config->get('config_tax'));
 			} else {
 				$price = false;
 			}
 
 			if ((float)$result['special']) {
-				$special = $this->currency->format($this->tax->calculate($result['special'], $result['tax_class_id'], $this->config->get('config_tax')), $this->session->data['currency']);
+				$special = $this->tax->calculate($result['special'], $result['tax_class_id'], $this->config->get('config_tax'));
 			} else {
 				$special = false;
 			}
 
 			if ($this->config->get('config_tax')) {
-				$tax = $this->currency->format((float)$result['special'] ? $result['special'] : $result['price'], $this->session->data['currency']);
+				$tax = (float)$result['special'] ? $result['special'] : $result['price'];
 			} else {
 				$tax = false;
 			}
 
 			$product_data = [
-				'product_id'  => $result['product_id'],
 				'thumb'       => $this->model_tool_image->resize($image, $this->config->get('config_image_product_width'), $this->config->get('config_image_product_height')),
-				'name'        => $result['name'],
 				'description' => $description,
 				'price'       => $price,
 				'special'     => $special,
 				'tax'         => $tax,
 				'minimum'     => $result['minimum'] > 0 ? $result['minimum'] : 1,
-				'rating'      => $result['rating'],
 				'href'        => $this->url->link('product/product', 'language=' . $this->config->get('config_language') . '&product_id=' . $result['product_id'] . $url)
-			];
+			] + $result;
 
 			$data['products'][] = $this->load->controller('product/thumb', $product_data);
 		}
@@ -235,8 +237,10 @@ class Special extends \Opencart\System\Engine\Controller {
 			$url .= '&limit=' . $this->request->get['limit'];
 		}
 
+		// Total Specials
 		$product_total = $this->model_catalog_product->getTotalSpecials();
 
+		// Pagination
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $product_total,
 			'page'  => $page,

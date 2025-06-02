@@ -33,6 +33,7 @@ class Total extends \Opencart\System\Engine\Controller {
 
 		$installed = [];
 
+		// Extensions
 		$this->load->model('setting/extension');
 
 		$extensions = $this->model_setting_extension->getExtensionsByType('total');
@@ -59,7 +60,7 @@ class Total extends \Opencart\System\Engine\Controller {
 
 				$data['extensions'][] = [
 					'name'       => $this->language->get($code . '_heading_title'),
-					'status'     => $this->config->get('total_' . $code . '_status') ? $this->language->get('text_enabled') : $this->language->get('text_disabled'),
+					'status'     => $this->config->get('total_' . $code . '_status'),
 					'sort_order' => $this->config->get('total_' . $code . '_sort_order'),
 					'install'    => $this->url->link('extension/total.install', 'user_token=' . $this->session->data['user_token'] . '&extension=' . $extension . '&code=' . $code),
 					'uninstall'  => $this->url->link('extension/total.uninstall', 'user_token=' . $this->session->data['user_token'] . '&extension=' . $extension . '&code=' . $code),
@@ -105,10 +106,12 @@ class Total extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Extension
 			$this->load->model('setting/extension');
 
 			$this->model_setting_extension->install('total', $extension, $code);
 
+			// User Group
 			$this->load->model('user/user_group');
 
 			$this->model_user_user_group->addPermission($this->user->getGroupId(), 'access', 'extension/' . $extension . '/total/' . $code);
@@ -155,6 +158,7 @@ class Total extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Extension
 			$this->load->model('setting/extension');
 
 			$this->model_setting_extension->uninstall('total', $this->request->get['code']);

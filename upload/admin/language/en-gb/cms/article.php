@@ -8,7 +8,8 @@ $_['text_next']               = 'Success: You have modified %s to %s of %s artic
 $_['text_list']               = 'Article List';
 $_['text_add']                = 'Add Article';
 $_['text_edit']               = 'Edit Article';
-$_['text_default']            = 'Default';
+$_['text_general']            = 'General';
+$_['text_meta']               = 'Meta Tags';
 $_['text_keyword']            = 'Do not use spaces, instead replace spaces with - and make sure the SEO URL is globally unique.';
 
 // Column
@@ -42,7 +43,7 @@ $_['error_warning']           = 'Warning: Please check the form carefully for er
 $_['error_permission']        = 'Warning: You do not have permission to modify articles!';
 $_['error_name']              = 'Article Name must be between 1 and 255 characters!';
 $_['error_meta_title']        = 'Meta Title must be greater than 1 and less than 255 characters!';
+$_['error_author']            = 'Author must be between 3 and 64 characters!';
 $_['error_keyword']           = 'SEO URL must be between 1 and 64 characters!';
 $_['error_keyword_exists']    = 'SEO URL must be unique!';
 $_['error_keyword_character'] = 'Keyword can only use characters a-z, 0-9, - and _!';
-$_['error_author']            = 'Author must be between 3 and 64 characters!';

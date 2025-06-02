@@ -3,76 +3,105 @@ namespace Opencart\catalog\controller\api;
 /**
  * Class Shipping Method
  *
+ * Can be loaded using $this->load->controller('api/shipping_method');
+ *
  * @package Opencart\Catalog\Controller\Api
  */
 class ShippingMethod extends \Opencart\System\Engine\Controller {
 	/**
-	 * @return void
+	 * Index
+	 *
+	 * @return array<string, mixed>
 	 */
-	public function index(): void {
-		$this->load->language('api/sale/shipping_method');
+	public function index(): array {
+		$this->load->language('api/shipping_method');
 
-		$json = [];
+		$output = [];
+
+		$post_info = $this->request->post;
 
 		if ($this->cart->hasShipping()) {
+			// 1. Validate customer data exists
+			if (!isset($this->session->data['customer'])) {
+				$output['error'] = $this->language->get('error_customer');
+			}
+
+			// 2. Validate shipping address
 			if (!isset($this->session->data['shipping_address'])) {
-				$json['error'] = $this->language->get('error_shipping_address');
+				$output['error'] = $this->language->get('error_shipping_address');
+			}
+
+			// 3. Validate shipping method
+			$keys = [
+				'name',
+				'code',
+				'cost',
+				'tax_class_id'
+			];
+
+			foreach ($keys as $key) {
+				if (!isset($post_info['shipping_method'][$key])) {
+					$output['error'] = $this->language->get('error_shipping_method');
+
+					break;
+				}
 			}
 		} else {
-			$json['error'] = $this->language->get('error_shipping');
+			$output['error'] = $this->language->get('error_shipping');
 		}
 
-		if (!$json) {
+		if (!$output) {
+			$this->session->data['shipping_method'] = [
+				'name'         => $post_info['shipping_method']['name'],
+				'code'         => $post_info['shipping_method']['code'],
+				'cost'         => (float)$post_info['shipping_method']['cost'],
+				'tax_class_id' => (int)$post_info['shipping_method']['tax_class_id'],
+				'text'         => $this->currency->format($this->tax->calculate((float)$post_info['shipping_method']['cost'], (int)$post_info['shipping_method']['tax_class_id'], $this->config->get('config_tax')), $this->session->data['currency'])
+			];
+
+			$output['success'] = $this->language->get('text_success');
+		}
+
+		return $output;
+	}
+
+	/**
+	 * Get Shipping Methods
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function getShippingMethods(): array {
+		$this->load->language('api/shipping_method');
+
+		$output = [];
+
+		// 1. Validate customer data exists
+		if (!isset($this->session->data['customer'])) {
+			$output['error'] = $this->language->get('error_customer');
+		}
+
+		// 2. Validate shipping, if required
+		if ($this->cart->hasShipping()) {
+			if (!isset($this->session->data['shipping_address'])) {
+				$output['error'] = $this->language->get('error_shipping_address');
+			}
+		} else {
+			$output['error'] = $this->language->get('error_shipping');
+		}
+
+		if (!$output) {
+			// Shipping Methods
 			$this->load->model('checkout/shipping_method');
 
 			$shipping_methods = $this->model_checkout_shipping_method->getMethods($this->session->data['shipping_address']);
 
 			if ($shipping_methods) {
-				$json['shipping_methods'] = $this->session->data['shipping_methods'] = $shipping_methods;
+				$output['shipping_methods'] = $shipping_methods;
 			} else {
-				$json['error'] = $this->language->get('error_no_shipping');
+				$output['error'] = $this->language->get('error_no_shipping');
 			}
 		}
 
-		$this->response->addHeader('Content-Type: application/json');
-		$this->response->setOutput(json_encode($json));
-	}
-
-	/**
-	 * Save
-	 *
-	 * @return void
-	 */
-	public function save(): void {
-		$this->load->language('api/sale/shipping_method');
-
-		$json = [];
-
-		if ($this->cart->hasShipping()) {
-			if (!isset($this->session->data['shipping_address'])) {
-				$json['error'] = $this->language->get('error_shipping_address');
-			}
-
-			if (isset($this->request->post['shipping_method'])) {
-				$shipping = explode('.', $this->request->post['shipping_method']);
-
-				if (!isset($shipping[0]) || !isset($shipping[1]) || !isset($this->session->data['shipping_methods'][$shipping[0]]['quote'][$shipping[1]])) {
-					$json['error'] = $this->language->get('error_shipping_method');
-				}
-			} else {
-				$json['error'] = $this->language->get('error_shipping_method');
-			}
-		} else {
-			$json['error'] = $this->language->get('error_shipping');
-		}
-
-		if (!$json) {
-			$json['success'] = $this->language->get('text_success');
-
-			$this->session->data['shipping_method'] = $this->session->data['shipping_methods'][$shipping[0]]['quote'][$shipping[1]];
-		}
-
-		$this->response->addHeader('Content-Type: application/json');
-		$this->response->setOutput(json_encode($json));
+		return $output;
 	}
 }

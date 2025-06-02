@@ -7,6 +7,8 @@ namespace Opencart\Catalog\Controller\Account;
  */
 class Reward extends \Opencart\System\Engine\Controller {
 	/**
+	 * Index
+	 *
 	 * @return void
 	 */
 	public function index(): void {
@@ -18,7 +20,7 @@ class Reward extends \Opencart\System\Engine\Controller {
 			$page = 1;
 		}
 
-		if (!$this->customer->isLogged() || (!isset($this->request->get['customer_token']) || !isset($this->session->data['customer_token']) || ($this->request->get['customer_token'] != $this->session->data['customer_token']))) {
+		if (!$this->load->controller('account/login.validate')) {
 			$this->session->data['redirect'] = $this->url->link('account/reward', 'language=' . $this->config->get('config_language'));
 
 			$this->response->redirect($this->url->link('account/login', 'language=' . $this->config->get('config_language'), true));
@@ -45,6 +47,7 @@ class Reward extends \Opencart\System\Engine\Controller {
 
 		$limit = 10;
 
+		// Rewards
 		$data['rewards'] = [];
 
 		$filter_data = [
@@ -60,16 +63,15 @@ class Reward extends \Opencart\System\Engine\Controller {
 
 		foreach ($results as $result) {
 			$data['rewards'][] = [
-				'order_id'    => $result['order_id'],
-				'points'      => $result['points'],
-				'description' => $result['description'],
-				'date_added'  => date($this->language->get('date_format_short'), strtotime($result['date_added'])),
-				'href'        => $this->url->link('account/order.info', 'language=' . $this->config->get('config_language') . '&customer_token=' . $this->session->data['customer_token'] . '&order_id=' . $result['order_id'])
-			];
+				'date_added' => date($this->language->get('date_format_short'), strtotime($result['date_added'])),
+				'href'       => $this->url->link('account/order.info', 'language=' . $this->config->get('config_language') . '&customer_token=' . $this->session->data['customer_token'] . '&order_id=' . $result['order_id'])
+			] + $result;
 		}
 
+		// Total Rewards
 		$reward_total = $this->model_account_reward->getTotalRewards($this->customer->getId());
 
+		// Pagination
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $reward_total,
 			'page'  => $page,

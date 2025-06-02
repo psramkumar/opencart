@@ -69,6 +69,7 @@ class Chart extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Setting
 			$this->load->model('setting/setting');
 
 			$this->model_setting_setting->editSetting('dashboard_chart', $this->request->post);
@@ -103,7 +104,10 @@ class Chart extends \Opencart\System\Engine\Controller {
 
 		$json = [];
 
+		// Customer
 		$this->load->model('extension/opencart/report/customer');
+
+		// Sale
 		$this->load->model('extension/opencart/report/sale');
 
 		$json['order'] = [];
@@ -194,7 +198,7 @@ class Chart extends \Opencart\System\Engine\Controller {
 				}
 
 				for ($i = 1; $i <= 12; $i++) {
-					$json['xaxis'][] = [$i, date('M', mktime(0, 0, 0, $i, 1))];
+					$json['xaxis'][] = [$i, date('M', mktime(0, 0, 0, $i, 1, date('Y')))];
 				}
 				break;
 		}

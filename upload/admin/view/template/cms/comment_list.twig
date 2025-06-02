@@ -1,9 +1,9 @@
-<form id="form-comment" method="post" data-oc-toggle="ajax" data-oc-load="{{ action }}" data-oc-target="#comment">
+<form id="form-comment" method="post" data-oc-toggle="ajax" data-oc-load="{{ action }}" data-oc-target="#list">
   <table class="table table-bordered">
     <thead>
       <tr>
-        <td class="text-center" style="width: 1px;"><input type="checkbox" onclick="$('input[name*=\'selected\']').prop('checked', $(this).prop('checked'));" class="form-check-input"/></td>
-        <td class="text-start">{{ column_comment }}</td>
+        <th class="text-center" style="width: 1px;"><input type="checkbox" onclick="$('input[name*=\'selected\']').prop('checked', $(this).prop('checked'));" class="form-check-input"/></th>
+        <th>{{ column_comment }}</th>
       </tr>
     </thead>
     <tbody>
@@ -13,13 +13,8 @@
             <td class="text-center" rowspan="2"><input type="checkbox" name="selected[]" value="{{ comment.article_comment_id }}" class="form-check-input"/></td>
             <td><a href="{{ comment.article_edit }}" target="_blank">{{ comment.article }}</a>
               <p>
-                {% if comment.status %}
-                  <small class="text-success">{{ text_enabled }}</small>
-                {% else %}
-                  <small class="text-danger">{{ text_disabled }}</small>
-                {% endif %}
                 {% if comment.customer_edit %}
-                  <small> - {{ text_by }} <a href="{{ comment.customer_edit }}" target="_blank">{{ comment.author }}</a></small>
+                  <small>{{ text_by }} <a href="{{ comment.customer_edit }}" target="_blank">{{ comment.author }}</a></small>
                 {% else %}
                   <small> - {{ text_by }} {{ comment.author }}</small>
                 {% endif %}
@@ -31,7 +26,7 @@
             </td>
           </tr>
           <tr>
-            <td class="text-end">
+            <td class="text-end text-nowrap">
               {% if comment.approve %}
                 <button type="button" value="{{ comment.approve }}" data-bs-toggle="tooltip" title="{{ button_approve }}" class="btn btn-success"><i class="fa-solid fa-check"></i></button>
               {% else %}

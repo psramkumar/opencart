@@ -10,15 +10,17 @@ $_['date_timezone']        = 'UTC';
 
 // Database
 $_['db_autostart']         = false;
-$_['db_engine']            = 'mysqli'; // mysqli, pdo or pgsql
-$_['db_hostname']          = 'localhost';
-$_['db_username']          = 'root';
-$_['db_password']          = '';
-$_['db_database']          = '';
-$_['db_port']              = 3306;
-//$_['db_ssl_key']         = '';
-//$_['db_ssl_cert']        = '';
-//$_['db_ssl_ca']          = '';
+$_['db_option']            = [
+	'engine'   => 'mysqli', // mysqli, pdo or pgsql
+	'hostname' => 'localhost',
+	'username' => 'root',
+	'password' => '',
+	'database' => '',
+	'port'     => '3306',
+	'ssl_key'  => '',
+	'ssl_cert' => '',
+	'ssl_ca'   => ''
+];
 
 // Mail
 $_['mail_engine']          = 'mail'; // mail or smtp
@@ -55,6 +57,7 @@ $_['template_extension']   = '.twig';
 // Error
 $_['error_display']        = true; // You need to change this to false on a live site.
 $_['error_log']            = true;
+$_['error_debug']          = false;
 $_['error_filename']       = 'error.log';
 $_['error_page']           = 'error.html';
 
@@ -66,5 +69,4 @@ $_['response_compression'] = 0;
 $_['action_default']       = 'common/home';
 $_['action_error']         = 'error/not_found';
 $_['action_pre_action']    = [];
-$_['action_post_action']   = [];
 $_['action_event']         = [];

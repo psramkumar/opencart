@@ -1,7 +1,7 @@
 <div class="text-center">
   {% if logged %}
     <button type="button" value="{{ like }}" data-bs-toggle="tooltip" title="{{ button_like }}" data-oc-toggle="rate" class="btn btn-secondary"><i class="fa fa-thumbs-up"></i></button>
-    <button type="button" value="{{ dislike }}"  data-bs-toggle="tooltip" title="{{ button_dislike }}"data-oc-toggle="rate" class="btn btn-secondary"><i class="fa fa-thumbs-down"></i></button>
+    <button type="button" value="{{ dislike }}" data-bs-toggle="tooltip" title="{{ button_dislike }}" data-oc-toggle="rate" class="btn btn-secondary"><i class="fa fa-thumbs-down"></i></button>
     <button type="button" value="{{ comment_add }}" data-oc-toggle="comment" data-oc-target="#comment-0" data-oc-trigger="#button-refresh" class="btn btn-secondary">{{ button_comment }}</button>
   {% else %}
     <a href="{{ login }}" class="btn btn-secondary"><i class="fa fa-thumbs-up"></i></a>
@@ -35,14 +35,14 @@
       </div>
       <div class="modal-body">
         <form id="form-comment" action="" data-oc-target="" data-oc-trigger="">
-          <div class="mb-3 required">
+          <div class="mb-3">
             <label for="input-author" class="form-label">{{ entry_author }}</label>
-            <input type="text" name="author" value="{{ author }}" placeholder="{{ entry_author }}" id="input-author" class="form-control"/>
+            <input type="text" name="author" value="{{ author }}" placeholder="{{ entry_author }}" id="input-author" class="form-control" required/>
             <div id="error-author" class="invalid-feedback"></div>
           </div>
-          <div class="mb-3 required">
+          <div class="mb-3">
             <label for="input-comment" class="form-label">{{ entry_comment }}</label>
-            <textarea name="comment" rows="5" placeholder="{{ entry_comment }}" id="input-comment" class="form-control">{{ comment }}</textarea>
+            <textarea name="comment" rows="5" placeholder="{{ entry_comment }}" id="input-comment" class="form-control" required>{{ comment }}</textarea>
             <div id="error-comment" class="invalid-feedback"></div>
           </div>
           {{ captcha }}

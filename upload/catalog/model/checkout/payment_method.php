@@ -1,21 +1,24 @@
 <?php
 namespace Opencart\Catalog\Model\Checkout;
 /**
- * Class PaymentMethod
+ * Class Payment Method
+ *
+ * Can be called using $this->load->model('checkout/payment_method');
  *
  * @package Opencart\Catalog\Model\Checkout
  */
-class PaymentMethod extends \Opencart\System\Engine\Controller {
+class PaymentMethod extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Methods
 	 *
-	 * @param array<string, mixed> $payment_address
+	 * @param array<string, mixed> $payment_address array of data
 	 *
 	 * @return array<string, mixed>
 	 */
 	public function getMethods(array $payment_address = []): array {
 		$method_data = [];
 
+		// Extensions
 		$this->load->model('setting/extension');
 
 		$results = $this->model_setting_extension->getExtensionsByType('payment');

@@ -7,6 +7,8 @@ namespace Opencart\Catalog\Controller\Cms;
  */
 class Blog extends \Opencart\System\Engine\Controller {
 	/**
+	 * Index
+	 *
 	 * @return void
 	 */
 	public function index(): void {
@@ -80,6 +82,7 @@ class Blog extends \Opencart\System\Engine\Controller {
 			'href' => $this->url->link('cms/blog', 'language=' . $this->config->get('config_language') . $url)
 		];
 
+		// Topic
 		$this->load->model('cms/topic');
 
 		$topic_info = $this->model_cms_topic->getTopic($filter_topic_id);
@@ -139,6 +142,7 @@ class Blog extends \Opencart\System\Engine\Controller {
 			$data['description'] = '';
 		}
 
+		// Image
 		$this->load->model('tool/image');
 
 		if (!empty($topic_info['image']) && is_file(DIR_IMAGE . html_entity_decode($topic_info['image'], ENT_QUOTES, 'UTF-8'))) {
@@ -149,6 +153,7 @@ class Blog extends \Opencart\System\Engine\Controller {
 
 		$limit = $this->config->get('config_pagination');
 
+		// Articles
 		$data['articles'] = [];
 
 		$filter_data = [
@@ -180,16 +185,13 @@ class Blog extends \Opencart\System\Engine\Controller {
 			}
 
 			$data['articles'][] = [
-				'article_id'    => $result['article_id'],
-				'name'          => $result['name'],
 				'description'   => $description,
 				'image'         => $image,
-				'author'        => $result['author'],
 				'filter_author' => $this->url->link('cms/blog', 'language=' . $this->config->get('config_language') . '&author=' . $result['author'] . $url),
 				'comment_total' => $this->model_cms_article->getTotalComments($result['article_id'], ['parent_id' => 0]),
 				'date_added'    => date($this->language->get('date_format_short'), strtotime($result['date_added'])),
 				'href'          => $this->url->link('cms/blog.info', 'language=' . $this->config->get('config_language') . '&article_id=' . $result['article_id'] . $url)
-			];
+			] + $result;
 		}
 
 		$url = '';
@@ -218,8 +220,10 @@ class Blog extends \Opencart\System\Engine\Controller {
 			$url .= '&order=' . $this->request->get['order'];
 		}
 
+		// Total Articles
 		$article_total = $this->model_cms_article->getTotalArticles($filter_data);
 
+		// Pagination
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $article_total,
 			'page'  => $page,
@@ -232,16 +236,7 @@ class Blog extends \Opencart\System\Engine\Controller {
 		$data['search'] = $filter_search;
 		$data['topic_id'] = $filter_topic_id;
 
-		$data['topics'] = [];
-
-		$results = $this->model_cms_topic->getTopics();
-
-		foreach ($results as $result) {
-			$data['topics'][] = [
-				'topic_id' => $result['topic_id'],
-				'name'     => $result['name']
-			];
-		}
+		$data['topics'] = $this->model_cms_topic->getTopics();
 
 		$url = '';
 
@@ -337,6 +332,7 @@ class Blog extends \Opencart\System\Engine\Controller {
 			$topic_id = 0;
 		}
 
+		// Article
 		$this->load->model('cms/article');
 
 		$article_info = $this->model_cms_article->getArticle($article_id);
@@ -380,6 +376,7 @@ class Blog extends \Opencart\System\Engine\Controller {
 				$url .= '&page=' . $this->request->get['page'];
 			}
 
+			// Topic
 			$this->load->model('cms/topic');
 
 			$topic_info = $this->model_cms_topic->getTopic($topic_id);
@@ -398,6 +395,7 @@ class Blog extends \Opencart\System\Engine\Controller {
 
 			$data['heading_title'] = $article_info['name'];
 
+			// Image
 			$this->load->model('tool/image');
 
 			if (!empty($article_info['image']) && is_file(DIR_IMAGE . html_entity_decode($article_info['image'], ENT_QUOTES, 'UTF-8'))) {

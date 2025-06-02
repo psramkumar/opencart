@@ -61,6 +61,7 @@ class SaleOrder extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Setting
 			$this->load->model('setting/setting');
 
 			$this->model_setting_setting->editSetting('report_sale_order', $this->request->post);
@@ -82,6 +83,7 @@ class SaleOrder extends \Opencart\System\Engine\Controller {
 
 		$data['list'] = $this->getReport();
 
+		// Order Statuses
 		$this->load->model('localisation/order_status');
 
 		$data['order_statuses'] = $this->model_localisation_order_status->getOrderStatuses();
@@ -160,6 +162,7 @@ class SaleOrder extends \Opencart\System\Engine\Controller {
 			$page = 1;
 		}
 
+		// Sale
 		$data['orders'] = [];
 
 		$filter_data = [
@@ -171,8 +174,10 @@ class SaleOrder extends \Opencart\System\Engine\Controller {
 			'limit'                  => $this->config->get('config_pagination')
 		];
 
+		// Extension
 		$this->load->model('extension/opencart/report/sale');
 
+		// Total Orders
 		$order_total = $this->model_extension_opencart_report_sale->getTotalOrders($filter_data);
 
 		$results = $this->model_extension_opencart_report_sale->getOrders($filter_data);
@@ -180,12 +185,8 @@ class SaleOrder extends \Opencart\System\Engine\Controller {
 		foreach ($results as $result) {
 			$data['orders'][] = [
 				'date_start' => date($this->language->get('date_format_short'), strtotime($result['date_start'])),
-				'date_end'   => date($this->language->get('date_format_short'), strtotime($result['date_end'])),
-				'orders'     => $result['orders'],
-				'products'   => $result['products'],
-				'tax'        => $this->currency->format((float)$result['tax'], $this->config->get('config_currency')),
-				'total'      => $this->currency->format((float)$result['total'], $this->config->get('config_currency'))
-			];
+				'date_end'   => date($this->language->get('date_format_short'), strtotime($result['date_end']))
+			] + $result;
 		}
 
 		$url = '';
@@ -206,6 +207,7 @@ class SaleOrder extends \Opencart\System\Engine\Controller {
 			$url .= '&filter_order_status_id=' . $this->request->get['filter_order_status_id'];
 		}
 
+		// Pagination
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $order_total,
 			'page'  => $page,
@@ -219,6 +221,8 @@ class SaleOrder extends \Opencart\System\Engine\Controller {
 		$data['filter_date_end'] = $filter_date_end;
 		$data['filter_group'] = $filter_group;
 		$data['filter_order_status_id'] = $filter_order_status_id;
+
+		$data['currency'] = $this->config->get('config_currency');
 
 		$data['user_token'] = $this->session->data['user_token'];
 

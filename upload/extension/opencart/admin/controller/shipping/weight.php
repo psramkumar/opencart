@@ -36,6 +36,7 @@ class Weight extends \Opencart\System\Engine\Controller {
 		$data['save'] = $this->url->link('extension/opencart/shipping/weight.save', 'user_token=' . $this->session->data['user_token']);
 		$data['back'] = $this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=shipping');
 
+		// Geo Zones
 		$this->load->model('localisation/geo_zone');
 
 		$geo_zones = $this->model_localisation_geo_zone->getGeoZones();
@@ -47,7 +48,8 @@ class Weight extends \Opencart\System\Engine\Controller {
 
 		$data['geo_zones'] = $geo_zones;
 
-		$data['shipping_weight_tax_class_id'] = $this->config->get('shipping_weight_tax_class_id');
+		// Tax Class
+		$data['shipping_weight_tax_class_id'] = (int)$this->config->get('shipping_weight_tax_class_id');
 
 		$this->load->model('localisation/tax_class');
 
@@ -78,6 +80,7 @@ class Weight extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Setting
 			$this->load->model('setting/setting');
 
 			$this->model_setting_setting->editSetting('shipping_weight', $this->request->post);

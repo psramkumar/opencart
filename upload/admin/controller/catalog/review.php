@@ -3,6 +3,8 @@ namespace Opencart\Admin\Controller\Catalog;
 /**
  * Class Review
  *
+ * Can be loaded using $this->load->controller('catalog/review');
+ *
  * @package Opencart\Admin\Controller\Catalog
  */
 class Review extends \Opencart\System\Engine\Controller {
@@ -94,6 +96,8 @@ class Review extends \Opencart\System\Engine\Controller {
 
 		$data['add'] = $this->url->link('catalog/review.form', 'user_token=' . $this->session->data['user_token'] . $url);
 		$data['delete'] = $this->url->link('catalog/review.delete', 'user_token=' . $this->session->data['user_token']);
+		$data['enable']	= $this->url->link('catalog/review.enable', 'user_token=' . $this->session->data['user_token']);
+		$data['disable'] = $this->url->link('catalog/review.disable', 'user_token=' . $this->session->data['user_token']);
 
 		$data['list'] = $this->getList();
 
@@ -128,7 +132,7 @@ class Review extends \Opencart\System\Engine\Controller {
 	 *
 	 * @return string
 	 */
-	protected function getList(): string {
+	public function getList(): string {
 		if (isset($this->request->get['filter_product'])) {
 			$filter_product = $this->request->get['filter_product'];
 		} else {
@@ -213,6 +217,7 @@ class Review extends \Opencart\System\Engine\Controller {
 
 		$data['action'] = $this->url->link('catalog/review.list', 'user_token=' . $this->session->data['user_token'] . $url);
 
+		// Reviews
 		$data['reviews'] = [];
 
 		$filter_data = [
@@ -233,14 +238,11 @@ class Review extends \Opencart\System\Engine\Controller {
 
 		foreach ($results as $result) {
 			$data['reviews'][] = [
-				'review_id'  => $result['review_id'],
-				'name'       => $result['name'],
-				'author'     => $result['author'],
-				'rating'     => $result['rating'],
-				'status'     => $result['status'],
 				'date_added' => date($this->language->get('date_format_short'), strtotime($result['date_added'])),
+				'enable'  => $this->url->link('catalog/review.enable', 'user_token=' . $this->session->data['user_token'] . '&review_id=' . $result['review_id'] . $url),
+				'disable' => $this->url->link('catalog/review.disable', 'user_token=' . $this->session->data['user_token'] . '&review_id=' . $result['review_id'] . $url),
 				'edit'       => $this->url->link('catalog/review.form', 'user_token=' . $this->session->data['user_token'] . '&review_id=' . $result['review_id'] . $url)
-			];
+			] + $result;
 		}
 
 		$url = '';
@@ -271,10 +273,12 @@ class Review extends \Opencart\System\Engine\Controller {
 			$url .= '&order=ASC';
 		}
 
+		// Sorts
 		$data['sort_product'] = $this->url->link('catalog/review.list', 'user_token=' . $this->session->data['user_token'] . '&sort=pd.name' . $url);
 		$data['sort_author'] = $this->url->link('catalog/review.list', 'user_token=' . $this->session->data['user_token'] . '&sort=r.author' . $url);
 		$data['sort_rating'] = $this->url->link('catalog/review.list', 'user_token=' . $this->session->data['user_token'] . '&sort=r.rating' . $url);
 		$data['sort_date_added'] = $this->url->link('catalog/review.list', 'user_token=' . $this->session->data['user_token'] . '&sort=r.date_added' . $url);
+		$data['sort_status'] = $this->url->link('catalog/review.list', 'user_token=' . $this->session->data['user_token'] . '&sort=r.status' . $url);
 
 		$url = '';
 
@@ -306,8 +310,10 @@ class Review extends \Opencart\System\Engine\Controller {
 			$url .= '&order=' . $this->request->get['order'];
 		}
 
+		// Total Reviews
 		$review_total = $this->model_catalog_review->getTotalReviews($filter_data);
 
+		// Pagination
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $review_total,
 			'page'  => $page,
@@ -327,6 +333,72 @@ class Review extends \Opencart\System\Engine\Controller {
 		$data['order'] = $order;
 
 		return $this->load->view('catalog/review_list', $data);
+	}
+
+	/**
+	 * Enable
+	 *
+	 * @return void
+	 */
+	public function enable(): void {
+		$this->load->language('catalog/review');
+
+		$json = [];
+
+		if (isset($this->request->get['review_id'])) {
+			$review_id = (int)$this->request->get['review_id'];
+		} else {
+			$review_id = 0;
+		}
+
+		if (!$this->user->hasPermission('modify', 'catalog/review')) {
+			$json['error'] = $this->language->get('error_permission');
+		}
+
+		if (!$json) {
+			// review
+			$this->load->model('catalog/review');
+
+			$this->model_catalog_review->editStatus($review_id, true);
+
+			$json['success'] = $this->language->get('text_success');
+		}
+
+		$this->response->addHeader('Content-Type: application/json');
+		$this->response->setOutput(json_encode($json));
+	}
+
+	/**
+	 * Disable
+	 *
+	 * @return void
+	 */
+	public function disable(): void {
+		$this->load->language('catalog/review');
+
+		$json = [];
+
+		if (isset($this->request->get['review_id'])) {
+			$review_id = (int)$this->request->get['review_id'];
+		} else {
+			$review_id = 0;
+		}
+
+		if (!$this->user->hasPermission('modify', 'catalog/review')) {
+			$json['error'] = $this->language->get('error_permission');
+		}
+
+		if (!$json) {
+			// review
+			$this->load->model('catalog/review');
+
+			$this->model_catalog_review->editStatus($review_id, false);
+
+			$json['success'] = $this->language->get('text_success');
+		}
+
+		$this->response->addHeader('Content-Type: application/json');
+		$this->response->setOutput(json_encode($json));
 	}
 
 	/**
@@ -390,14 +462,15 @@ class Review extends \Opencart\System\Engine\Controller {
 		$data['save'] = $this->url->link('catalog/review.save', 'user_token=' . $this->session->data['user_token']);
 		$data['back'] = $this->url->link('catalog/review', 'user_token=' . $this->session->data['user_token'] . $url);
 
+		// Review
 		if (isset($this->request->get['review_id'])) {
 			$this->load->model('catalog/review');
 
-			$review_info = $this->model_catalog_review->getReview($this->request->get['review_id']);
+			$review_info = $this->model_catalog_review->getReview((int)$this->request->get['review_id']);
 		}
 
-		if (isset($this->request->get['review_id'])) {
-			$data['review_id'] = (int)$this->request->get['review_id'];
+		if (!empty($review_info)) {
+			$data['review_id'] = $review_info['review_id'];
 		} else {
 			$data['review_id'] = 0;
 		}
@@ -467,19 +540,30 @@ class Review extends \Opencart\System\Engine\Controller {
 			$json['error']['warning'] = $this->language->get('error_permission');
 		}
 
-		if (!oc_validate_length($this->request->post['author'], 3, 64)) {
+		$required = [
+			'review_id'  => 0,
+			'author'     => '',
+			'product_id' => 0,
+			'text'       => '',
+			'rating'     => 0,
+			'status'     => 0
+		];
+
+		$post_info = $this->request->post + $required;
+
+		if (!oc_validate_length($post_info['author'], 3, 64)) {
 			$json['error']['author'] = $this->language->get('error_author');
 		}
 
-		if (!$this->request->post['product_id']) {
+		if (!$post_info['product_id']) {
 			$json['error']['product'] = $this->language->get('error_product');
 		}
 
-		if (oc_strlen($this->request->post['text']) < 1) {
+		if (oc_strlen($post_info['text']) < 1) {
 			$json['error']['text'] = $this->language->get('error_text');
 		}
 
-		if (!isset($this->request->post['rating']) || $this->request->post['rating'] < 0 || $this->request->post['rating'] > 5) {
+		if (!isset($post_info['rating']) || $post_info['rating'] < 0 || $post_info['rating'] > 5) {
 			$json['error']['rating'] = $this->language->get('error_rating');
 		}
 
@@ -488,12 +572,13 @@ class Review extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Review
 			$this->load->model('catalog/review');
 
-			if (!$this->request->post['review_id']) {
-				$json['review_id'] = $this->model_catalog_review->addReview($this->request->post);
+			if (!$post_info['review_id']) {
+				$json['review_id'] = $this->model_catalog_review->addReview($post_info);
 			} else {
-				$this->model_catalog_review->editReview($this->request->post['review_id'], $this->request->post);
+				$this->model_catalog_review->editReview($post_info['review_id'], $post_info);
 			}
 
 			$json['success'] = $this->language->get('text_success');
@@ -514,7 +599,7 @@ class Review extends \Opencart\System\Engine\Controller {
 		$json = [];
 
 		if (isset($this->request->post['selected'])) {
-			$selected = $this->request->post['selected'];
+			$selected = (array)$this->request->post['selected'];
 		} else {
 			$selected = [];
 		}
@@ -524,6 +609,7 @@ class Review extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Review
 			$this->load->model('catalog/review');
 
 			foreach ($selected as $review_id) {
@@ -558,7 +644,10 @@ class Review extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Product
 			$this->load->model('catalog/product');
+
+			// Review
 			$this->load->model('catalog/review');
 
 			$limit = 10;
@@ -574,6 +663,7 @@ class Review extends \Opencart\System\Engine\Controller {
 				$this->model_catalog_product->editRating($result['product_id'], $this->model_catalog_review->getRating($result['product_id']));
 			}
 
+			// Total Products
 			$product_total = $this->model_catalog_product->getTotalProducts();
 
 			$start = ($page - 1) * $limit;

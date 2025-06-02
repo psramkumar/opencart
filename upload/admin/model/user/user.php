@@ -3,15 +3,36 @@ namespace Opencart\Admin\Model\User;
 /**
  * Class User
  *
+ * Can be loaded using $this->load->model('user/user');
+ *
  * @package Opencart\Admin\Model\User
  */
 class User extends \Opencart\System\Engine\Model {
 	/**
 	 * Add User
 	 *
-	 * @param array<string, mixed> $data
+	 * Create a new user record in the database.
+	 *
+	 * @param array<string, mixed> $data array of data
 	 *
 	 * @return int
+	 *
+	 * @example
+	 *
+	 * $user_data = [
+	 *     'username'      => 'Username',
+	 *     'user_group_id' => 1,
+	 *     'password'      => '',
+	 *     'firstname'     => 'John',
+	 *     'lastname'      => 'Doe',
+	 *     'email'         => 'demo@opencart.com',
+	 *     'image'         => 'user_image',
+	 *     'status'        => 0
+	 * ];
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $user_id = $this->model_user_user->addUser($user_data);
 	 */
 	public function addUser(array $data): int {
 		$this->db->query("INSERT INTO `" . DB_PREFIX . "user` SET `username` = '" . $this->db->escape((string)$data['username']) . "', `user_group_id` = '" . (int)$data['user_group_id'] . "', `password` = '" . $this->db->escape(password_hash(html_entity_decode($data['password'], ENT_QUOTES, 'UTF-8'), PASSWORD_DEFAULT)) . "', `firstname` = '" . $this->db->escape((string)$data['firstname']) . "', `lastname` = '" . $this->db->escape((string)$data['lastname']) . "', `email` = '" . $this->db->escape((string)$data['email']) . "', `image` = '" . $this->db->escape((string)$data['image']) . "', `status` = '" . (bool)($data['status'] ?? 0) . "', `date_added` = NOW()");
@@ -22,10 +43,29 @@ class User extends \Opencart\System\Engine\Model {
 	/**
 	 * Edit User
 	 *
-	 * @param int                  $user_id
-	 * @param array<string, mixed> $data
+	 * Edit user status record in the database.
+	 *
+	 * @param int                  $user_id primary key of the user record
+	 * @param array<string, mixed> $data    array of data
 	 *
 	 * @return void
+	 *
+	 * @example
+	 *
+	 * $user_data = [
+	 *     'username'      => 'Username',
+	 *     'user_group_id' => 1,
+	 *     'password'      => '',
+	 *     'firstname'     => 'John',
+	 *     'lastname'      => 'Doe',
+	 *     'email'         => 'demo@opencart.com',
+	 *     'image'         => 'user_image',
+	 *     'status'        => 1
+	 * ];
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $this->model_user_user->editUser($user_id, $user_data);
 	 */
 	public function editUser(int $user_id, array $data): void {
 		$this->db->query("UPDATE `" . DB_PREFIX . "user` SET `username` = '" . $this->db->escape((string)$data['username']) . "', `user_group_id` = '" . (int)$data['user_group_id'] . "', `firstname` = '" . $this->db->escape((string)$data['firstname']) . "', `lastname` = '" . $this->db->escape((string)$data['lastname']) . "', `email` = '" . $this->db->escape((string)$data['email']) . "', `image` = '" . $this->db->escape((string)$data['image']) . "', `status` = '" . (bool)($data['status'] ?? 0) . "' WHERE `user_id` = '" . (int)$user_id . "'");
@@ -38,33 +78,37 @@ class User extends \Opencart\System\Engine\Model {
 	/**
 	 * Edit Password
 	 *
-	 * @param int    $user_id
+	 * Edit user password record in the database.
+	 *
+	 * @param int    $user_id  primary key of the user record
 	 * @param string $password
 	 *
 	 * @return void
+	 *
+	 * @example
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $this->model_user_user->editPassword($user_id, $password);
 	 */
 	public function editPassword(int $user_id, $password): void {
 		$this->db->query("UPDATE `" . DB_PREFIX . "user` SET `password` = '" . $this->db->escape(password_hash(html_entity_decode($password, ENT_QUOTES, 'UTF-8'), PASSWORD_DEFAULT)) . "', `code` = '' WHERE `user_id` = '" . (int)$user_id . "'");
 	}
 
 	/**
-	 * Edit Code
-	 *
-	 * @param string $email
-	 * @param string $code
-	 *
-	 * @return void
-	 */
-	public function editCode(string $email, string $code): void {
-		$this->db->query("UPDATE `" . DB_PREFIX . "user` SET `code` = '" . $this->db->escape($code) . "' WHERE LCASE(`email`) = '" . $this->db->escape(oc_strtolower($email)) . "'");
-	}
-
-	/**
 	 * Delete User
 	 *
-	 * @param int $user_id
+	 * Delete user record in the database.
+	 *
+	 * @param int $user_id primary key of the user record
 	 *
 	 * @return void
+	 *
+	 * @example
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $this->model_user_user->deleteUser($user_id);
 	 */
 	public function deleteUser(int $user_id): void {
 		$this->db->query("DELETE FROM `" . DB_PREFIX . "user` WHERE `user_id` = '" . (int)$user_id . "'");
@@ -76,12 +120,20 @@ class User extends \Opencart\System\Engine\Model {
 	/**
 	 * Get User
 	 *
-	 * @param int $user_id
+	 * Get the record of the user record in the database.
 	 *
-	 * @return array<string, mixed>
+	 * @param int $user_id primary key of the user record
+	 *
+	 * @return array<string, mixed> user record that has user ID
+	 *
+	 * @example
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $user_info = $this->model_user_user->getUser($user_id);
 	 */
 	public function getUser(int $user_id): array {
-		$query = $this->db->query("SELECT *, (SELECT ug.`name` FROM `" . DB_PREFIX . "user_group` ug WHERE ug.`user_group_id` = u.`user_group_id`) AS user_group FROM `" . DB_PREFIX . "user` u WHERE u.`user_id` = '" . (int)$user_id . "'");
+		$query = $this->db->query("SELECT *, (SELECT `ug`.`name` FROM `" . DB_PREFIX . "user_group` `ug` WHERE `ug`.`user_group_id` = `u`.`user_group_id`) AS `user_group` FROM `" . DB_PREFIX . "user` `u` WHERE `u`.`user_id` = '" . (int)$user_id . "'");
 
 		return $query->row;
 	}
@@ -92,6 +144,12 @@ class User extends \Opencart\System\Engine\Model {
 	 * @param string $username
 	 *
 	 * @return array<string, mixed>
+	 *
+	 * @example
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $user_info = $this->model_user_user->getUserByUsername($username);
 	 */
 	public function getUserByUsername(string $username): array {
 		$query = $this->db->query("SELECT * FROM `" . DB_PREFIX . "user` WHERE `username` = '" . $this->db->escape($username) . "'");
@@ -105,6 +163,12 @@ class User extends \Opencart\System\Engine\Model {
 	 * @param string $email
 	 *
 	 * @return array<string, mixed>
+	 *
+	 * @example
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $user_info = $this->model_user_user->getUserByEmail($email);
 	 */
 	public function getUserByEmail(string $email): array {
 		$query = $this->db->query("SELECT DISTINCT * FROM `" . DB_PREFIX . "user` WHERE LCASE(`email`) = '" . $this->db->escape(oc_strtolower($email)) . "'");
@@ -118,6 +182,12 @@ class User extends \Opencart\System\Engine\Model {
 	 * @param string $code
 	 *
 	 * @return array<string, mixed>
+	 *
+	 * @example
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $user_info = $this->model_user_user->getUserByCode($code);
 	 */
 	public function getUserByCode(string $code): array {
 		$query = $this->db->query("SELECT * FROM `" . DB_PREFIX . "user` WHERE `code` = '" . $this->db->escape($code) . "' AND `code` != ''");
@@ -128,12 +198,33 @@ class User extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Users
 	 *
-	 * @param array<string, mixed> $data
+	 * Get the record of the user records in the database.
 	 *
-	 * @return array<int, array<string, mixed>>
+	 * @param array<string, mixed> $data array of filters
+	 *
+	 * @return array<int, array<string, mixed>> user records
+	 *
+	 * @example
+	 *
+	 * $filter_data = [
+	 *     'filter_username'      => 'Username',
+	 *     'filter_name'          => 'User Name',
+	 *     'filter_email'         => 'demo@opencart.com',
+	 *     'filter_user_group_id' => 1,
+	 *     'filter_status'        => 1,
+	 *     'filter_ip'            => '',
+	 *     'sort'                 => 'username',
+	 *     'order'                => 'DESC',
+	 *     'start'                => 0,
+	 *     'limit'                => 10
+	 * ];
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $results = $this->model_user_user->getUsers($filter_data);
 	 */
 	public function getUsers(array $data = []): array {
-		$sql = "SELECT *, CONCAT(`u`.`firstname`, ' ', `u`.`lastname`) AS `name`, (SELECT `ug`.`name` FROM `" . DB_PREFIX . "user_group` `ug` WHERE `ug`.`user_group_id` = `u`.`user_group_id`) AS user_group FROM `" . DB_PREFIX . "user` `u`";
+		$sql = "SELECT *, CONCAT(`u`.`firstname`, ' ', `u`.`lastname`) AS `name`, (SELECT `ug`.`name` FROM `" . DB_PREFIX . "user_group` `ug` WHERE `ug`.`user_group_id` = `u`.`user_group_id`) AS `user_group` FROM `" . DB_PREFIX . "user` `u`";
 
 		$implode = [];
 
@@ -207,9 +298,30 @@ class User extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Total Users
 	 *
-	 * @param array<string, mixed> $data
+	 * Get the total number of total user records in the database.
 	 *
-	 * @return int
+	 * @param array<string, mixed> $data array of filters
+	 *
+	 * @return int total number of user records
+	 *
+	 * @example
+	 *
+	 * $filter_data = [
+	 *     'filter_username'      => 'Username',
+	 *     'filter_name'          => 'User Name',
+	 *     'filter_email'         => 'demo@opencart.com',
+	 *     'filter_user_group_id' => 1,
+	 *     'filter_status'        => 1,
+	 *     'filter_ip'            => '',
+	 *     'sort'                 => 'username',
+	 *     'order'                => 'DESC',
+	 *     'start'                => 0,
+	 *     'limit'                => 10
+	 * ];
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $user_total = $this->model_user_user->getTotalUsers($filter_data);
 	 */
 	public function getTotalUsers(array $data = []): int {
 		$sql = "SELECT COUNT(*) AS `total` FROM `" . DB_PREFIX . "user` `u` ";
@@ -252,9 +364,17 @@ class User extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Total Users By Group ID
 	 *
-	 * @param int $user_group_id
+	 * Get the total number of total users by group records in the database.
 	 *
-	 * @return int
+	 * @param int $user_group_id primary key of the user group record
+	 *
+	 * @return int total number of user records that have user group ID
+	 *
+	 * @example
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $user_total = $this->model_user_user->getTotalUsersByGroupId($user_group_id);
 	 */
 	public function getTotalUsersByGroupId(int $user_group_id): int {
 		$query = $this->db->query("SELECT COUNT(*) AS `total` FROM `" . DB_PREFIX . "user` WHERE `user_group_id` = '" . (int)$user_group_id . "'");
@@ -268,6 +388,12 @@ class User extends \Opencart\System\Engine\Model {
 	 * @param string $email
 	 *
 	 * @return int
+	 *
+	 * @example
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $user_total = $this->model_user_user->getTotalusersByEmail($email);
 	 */
 	public function getTotalUsersByEmail(string $email): int {
 		$query = $this->db->query("SELECT COUNT(*) AS `total` FROM `" . DB_PREFIX . "user` WHERE LCASE(`email`) = '" . $this->db->escape(oc_strtolower($email)) . "'");
@@ -278,10 +404,23 @@ class User extends \Opencart\System\Engine\Model {
 	/**
 	 * Add Login
 	 *
-	 * @param int                  $user_id
-	 * @param array<string, mixed> $data
+	 * Create a new user login record in the database.
+	 *
+	 * @param int                  $user_id primary key of the user record
+	 * @param array<string, mixed> $data    array of data
 	 *
 	 * @return void
+	 *
+	 * @example
+	 *
+	 * $user_login_data = [
+	 *     'ip'         => '',
+	 *     'user_agent' => ''
+	 * ];
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $this->model_user_user->addLogin($user_id, $user_login_data);
 	 */
 	public function addLogin(int $user_id, array $data): void {
 		$this->db->query("INSERT INTO `" . DB_PREFIX . "user_login` SET `user_id` = '" . (int)$user_id . "', `ip` = '" . $this->db->escape($data['ip']) . "', `user_agent` = '" . $this->db->escape($data['user_agent']) . "', `date_added` = NOW()");
@@ -290,9 +429,17 @@ class User extends \Opencart\System\Engine\Model {
 	/**
 	 * Delete User Logins
 	 *
-	 * @param int $user_id
+	 * Delete user login records in the database.
+	 *
+	 * @param int $user_id primary key of the user record
 	 *
 	 * @return void
+	 *
+	 * @example
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $this->model_user_user->deleteLogins($user_id);
 	 */
 	public function deleteLogins(int $user_id): void {
 		$this->db->query("DELETE FROM `" . DB_PREFIX . "user_login` WHERE `user_id` = '" . (int)$user_id . "'");
@@ -301,11 +448,19 @@ class User extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Logins
 	 *
-	 * @param int $user_id
+	 * Get the record of the user login records in the database.
+	 *
+	 * @param int $user_id primary key of the user record
 	 * @param int $start
 	 * @param int $limit
 	 *
-	 * @return array<int, array<string, mixed>>
+	 * @return array<int, array<string, mixed>> login records that have user ID
+	 *
+	 * @example
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $results = $this->model_user_user->getLogins($user_id, $start, $limit);
 	 */
 	public function getLogins(int $user_id, int $start = 0, int $limit = 10): array {
 		if ($start < 0) {
@@ -316,7 +471,7 @@ class User extends \Opencart\System\Engine\Model {
 			$limit = 10;
 		}
 
-		$query = $this->db->query("SELECT * FROM `" . DB_PREFIX . "user_login` WHERE `user_id` = '" . (int)$user_id . "' LIMIT " . (int)$start . "," . (int)$limit);
+		$query = $this->db->query("SELECT * FROM `" . DB_PREFIX . "user_login` WHERE `user_id` = '" . (int)$user_id . "' ORDER BY `date_added` DESC LIMIT " . (int)$start . "," . (int)$limit);
 
 		if ($query->num_rows) {
 			return $query->rows;
@@ -328,9 +483,17 @@ class User extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Total Logins
 	 *
-	 * @param int $user_id
+	 * Get the total number of total user login records in the database.
 	 *
-	 * @return int
+	 * @param int $user_id primary key of the user record
+	 *
+	 * @return int total number of login records that have user ID
+	 *
+	 * @example
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $login_total = $this->model_user_user->getTotalLogins($user_id);
 	 */
 	public function getTotalLogins(int $user_id): int {
 		$query = $this->db->query("SELECT COUNT(*) AS `total` FROM `" . DB_PREFIX . "user_login` WHERE `user_id` = '" . (int)$user_id . "'");
@@ -345,22 +508,44 @@ class User extends \Opencart\System\Engine\Model {
 	/**
 	 * Add Authorize
 	 *
-	 * @param int                  $user_id
-	 * @param array<string, mixed> $data
+	 * Create a new user authorize record in the database.
+	 *
+	 * @param int                  $user_id primary key of the user record
+	 * @param array<string, mixed> $data    array of data
 	 *
 	 * @return void
+	 *
+	 * @example
+	 *
+	 * $user_authorize_data = [
+	 *     'token'      => '',
+	 *     'ip'         => '',
+	 *     'user_agent' => ''
+	 * ];
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $this->model_user_user->addAuthorize($user_id, $user_authorize_data);
 	 */
 	public function addAuthorize(int $user_id, array $data): void {
-		$this->db->query("INSERT INTO `" . DB_PREFIX . "user_authorize` SET `user_id` = '" . (int)$user_id . "', `token` = '" . $this->db->escape($data['token']) . "', `ip` = '" . $this->db->escape($data['ip']) . "', `user_agent` = '" . $this->db->escape($data['user_agent']) . "', `date_added` = NOW()");
+		$this->db->query("INSERT INTO `" . DB_PREFIX . "user_authorize` SET `user_id` = '" . (int)$user_id . "', `token` = '" . $this->db->escape($data['token']) . "', `ip` = '" . $this->db->escape($data['ip']) . "', `user_agent` = '" . $this->db->escape($data['user_agent']) . "', `date_added` = NOW(), `date_expire` = NOW()");
 	}
 
 	/**
 	 * Edit Authorize Status
 	 *
-	 * @param int  $user_authorize_id
+	 * Edit user authorize status record in the database.
+	 *
+	 * @param int  $user_authorize_id primary key of the user authorize record
 	 * @param bool $status
 	 *
 	 * @return void
+	 *
+	 * @example
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $this->model_user_user->editAuthorizeStatus($user_authorize_id, $status);
 	 */
 	public function editAuthorizeStatus(int $user_authorize_id, bool $status): void {
 		$this->db->query("UPDATE `" . DB_PREFIX . "user_authorize` SET `status` = '" . (bool)$status . "' WHERE `user_authorize_id` = '" . (int)$user_authorize_id . "'");
@@ -369,22 +554,38 @@ class User extends \Opencart\System\Engine\Model {
 	/**
 	 * Edit Authorize Total
 	 *
-	 * @param int $user_authorize_id
+	 * Edit user authorize total record in the database.
+	 *
+	 * @param int $user_authorize_id primary key of the user authorize record
 	 * @param int $total
 	 *
 	 * @return void
+	 *
+	 * @example
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $this->model_user_user->editAuthorizeTotal($user_authorize_id, $total);
 	 */
 	public function editAuthorizeTotal(int $user_authorize_id, int $total): void {
 		$this->db->query("UPDATE `" . DB_PREFIX . "user_authorize` SET `total` = '" . (int)$total . "' WHERE `user_authorize_id` = '" . (int)$user_authorize_id . "'");
 	}
 
 	/**
-	 * Reset User Authorizes
+	 * Edit Authorize Total By User ID
 	 *
-	 * @param int $user_id
+	 * Edit user authorize total by user record in the database.
+	 *
+	 * @param int $user_id primary key of the user record
 	 * @param int $total
 	 *
 	 * @return void
+	 *
+	 * @example
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $this->model_user_user->editAuthorizeTotalByUserId($user_id, $total);
 	 */
 	public function editAuthorizeTotalByUserId(int $user_id, int $total): void {
 		$this->db->query("UPDATE `" . DB_PREFIX . "user_authorize` SET `total` = '" . (int)$total . "' WHERE `user_id` = '" . (int)$user_id . "'");
@@ -393,10 +594,18 @@ class User extends \Opencart\System\Engine\Model {
 	/**
 	 * Delete User Authorizes
 	 *
-	 * @param int $user_id
-	 * @param int $user_authorize_id
+	 * Delete user authorize records in the database.
+	 *
+	 * @param int $user_id           primary key of the user record
+	 * @param int $user_authorize_id primary key of the user authorize record
 	 *
 	 * @return void
+	 *
+	 * @example
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $this->model_user_user->deleteAuthorizes($user_id, $user_authorize_id);
 	 */
 	public function deleteAuthorizes(int $user_id, int $user_authorize_id = 0): void {
 		$sql = "DELETE FROM `" . DB_PREFIX . "user_authorize` WHERE `user_id` = '" . (int)$user_id . "'";
@@ -411,9 +620,17 @@ class User extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Authorize
 	 *
-	 * @param int $user_authorize_id
+	 * Get the record of the user authorize record in the database.
 	 *
-	 * @return array<string, mixed>
+	 * @param int $user_authorize_id primary key of the user authorize record
+	 *
+	 * @return array<string, mixed> authorize record that has user authorize ID
+	 *
+	 * @example
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $authorize_info = $this->model_user_user->getAuthorize($user_authorize_id);
 	 */
 	public function getAuthorize(int $user_authorize_id): array {
 		$query = $this->db->query("SELECT * FROM `" . DB_PREFIX . "user_authorize` WHERE `user_authorize_id` = '" . (int)$user_authorize_id . "'");
@@ -424,10 +641,16 @@ class User extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Authorize By Token
 	 *
-	 * @param int    $user_id
+	 * @param int    $user_id primary key of the user record
 	 * @param string $token
 	 *
-	 * @return array<string, mixed>
+	 * @return array<string, mixed> authorize record that has user ID, token
+	 *
+	 * @example
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $authorize_info = $this->model_user_user->getAuthorizeByToken($user_id, $token);
 	 */
 	public function getAuthorizeByToken(int $user_id, string $token): array {
 		$query = $this->db->query("SELECT *, (SELECT SUM(`total`) FROM `" . DB_PREFIX . "user_authorize` WHERE `user_id` = '" . (int)$user_id . "') AS `attempts` FROM `" . DB_PREFIX . "user_authorize` WHERE `user_id` = '" . (int)$user_id . "' AND `token` = '" . $this->db->escape($token) . "'");
@@ -438,11 +661,21 @@ class User extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Authorizes
 	 *
+	 * Get the record of the user authorize records in the database.
+	 *
 	 * @param int $user_id
 	 * @param int $start
 	 * @param int $limit
+	 * @param int $us      \
+	 *                     'er_id primary key of the user record
 	 *
-	 * @return array<int, array<string, mixed>>
+	 * @return array<int, array<string, mixed>> authorize records
+	 *
+	 * @example
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $results = $this->model_user_user->getAuthorizes($user_id, $start, $limit);
 	 */
 	public function getAuthorizes(int $user_id, int $start = 0, int $limit = 10): array {
 		if ($start < 0) {
@@ -465,9 +698,17 @@ class User extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Total Authorizes
 	 *
-	 * @param int $user_id
+	 * Get the total number of total user authorize records in the database.
 	 *
-	 * @return int
+	 * @param int $user_id primary key of the user record
+	 *
+	 * @return int total number of authorize records that have user ID
+	 *
+	 * @example
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $authorize_total = $this->model_user_user->getTotalAuthorizes($user_id);
 	 */
 	public function getTotalAuthorizes(int $user_id): int {
 		$query = $this->db->query("SELECT COUNT(*) AS `total` FROM `" . DB_PREFIX . "user_authorize` WHERE `user_id` = '" . (int)$user_id . "'");
@@ -477,5 +718,101 @@ class User extends \Opencart\System\Engine\Model {
 		} else {
 			return 0;
 		}
+	}
+
+	/**
+	 * Reset Customer Au
+	 * th
+	 * o
+	 * ri
+	 * zes
+	 *
+	 * @
+	 * para
+	 * m
+	 * int
+	 * $
+	 * us
+	 * er
+	 * _id pr
+	 * imary
+	 * key of th
+	 * e customer recor
+	 * d
+	 *
+	 * @ret
+	 * urn void
+	 *
+	 * @
+	 * exa
+	 * mple
+	 *
+	 * @param int $user_id
+	 */
+	public function resetAuthorizes(int $user_id): void {
+		$this->db->query("UPDATE `" . DB_PREFIX . "user_authorize` SET `total` = '0' WHERE `user_id` = '" . (int)$user_id . "'");
+	}
+
+	/**
+	 * Add Token
+	 *
+	 * Create a new user token record in the database.
+	 *
+	 * @param int    $user_id primary key of the user record
+	 * @param string $type
+	 * @param string $code
+	 * @param string $codev
+	 *
+	 * @return int total number of authorize records that have user ID, token
+	 *
+	 * @example
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $authorize_total = $this->model_user_user->addToken($user_id, $code, $type);
+	 */
+	public function addToken(int $user_id, string $type, string $code): void {
+		$this->db->query("DELETE FROM `" . DB_PREFIX . "user_token` WHERE `user_id` = '" . (int)$user_id . "' AND `type` = '" . $this->db->escape($type) . "'");
+
+		$this->db->query("INSERT INTO `" . DB_PREFIX . "user_token` SET `user_id` = '" . (int)$user_id . "', `code` = '" . $this->db->escape($code) . "', `type` = '" . $this->db->escape($type) . "', `date_added` = NOW()");
+	}
+
+	/**
+	 * Get Token By Code
+	 *
+	 * @param string $code
+	 *
+	 * @return array<string, mixed> token record that has user ID, code
+	 *
+	 * @example
+	 *
+	 * $this->load->model('user/user');
+	 *
+	 * $token_info = $this->model_user_user->getTokenByCode($user_id, $code);
+	 */
+	public function getTokenByCode(string $code): array {
+		$this->db->query("DELETE FROM `" . DB_PREFIX . "user_token` WHERE DATE_ADD(`date_added`, INTERVAL 10 MINUTE) < NOW()");
+
+		$query = $this->db->query("SELECT * FROM `" . DB_PREFIX . "user_token` `ut` LEFT JOIN `" . DB_PREFIX . "user` `u` ON (`ut`.`user_id` = `u`.`user_id`) WHERE `ut`.`code` = '" . $this->db->escape($code) . "'");
+
+		return $query->row;
+	}
+
+	/**
+	 * Delete Token By Code
+	 *
+	 * @param string $code
+	 * @param int    $customer_id primary key of the customer record
+	 *
+	 * @return void
+	 *
+	 * @example
+	 *
+	 * $this->load->model('account/customer');
+	 *
+	 * $this->model_account_customer->deleteToken($customer_id);
+	 */
+	public function deleteTokenByCode(string $code): void {
+		$this->db->query("DELETE FROM `" . DB_PREFIX . "user_token` WHERE `code` = '" . $this->db->escape($code) . "'");
 	}
 }

@@ -9,7 +9,7 @@ class Blog extends \Opencart\System\Engine\Controller {
 	/**
 	 * Index
 	 *
-	 * @param array<string, mixed> $setting
+	 * @param array<string, mixed> $setting array of filters
 	 *
 	 * @return string
 	 */
@@ -18,7 +18,10 @@ class Blog extends \Opencart\System\Engine\Controller {
 
 		$data['blogs'] = [];
 
+		// Blog
 		$this->load->model('extension/opencart/module/blog');
+
+		// Image
 		$this->load->model('tool/image');
 
 		$filter_data = [

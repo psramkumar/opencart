@@ -3,6 +3,8 @@ namespace Opencart\Admin\Controller\Common;
 /**
  * Class Column Left
  *
+ * Can be loaded using $this->load->controller('common/column_left');
+ *
  * @package Opencart\Admin\Controller\Common
  */
 class ColumnLeft extends \Opencart\System\Engine\Controller {
@@ -236,6 +238,14 @@ class ColumnLeft extends \Opencart\System\Engine\Controller {
 				];
 			}
 
+			if ($this->user->hasPermission('access', 'marketplace/ssr')) {
+				$marketplace[] = [
+					'name'     => $this->language->get('text_ssr'),
+					'href'     => $this->url->link('marketplace/ssr', 'user_token=' . $this->session->data['user_token']),
+					'children' => []
+				];
+			}
+
 			if ($this->user->hasPermission('access', 'marketplace/startup')) {
 				$marketplace[] = [
 					'name'     => $this->language->get('text_startup'),
@@ -347,33 +357,6 @@ class ColumnLeft extends \Opencart\System\Engine\Controller {
 					'name'     => $this->language->get('text_return'),
 					'href'     => $this->url->link('sale/returns', 'user_token=' . $this->session->data['user_token']),
 					'children' => []
-				];
-			}
-
-			// Voucher
-			$voucher = [];
-
-			if ($this->user->hasPermission('access', 'sale/voucher')) {
-				$voucher[] = [
-					'name'     => $this->language->get('text_voucher'),
-					'href'     => $this->url->link('sale/voucher', 'user_token=' . $this->session->data['user_token']),
-					'children' => []
-				];
-			}
-
-			if ($this->user->hasPermission('access', 'sale/voucher_theme')) {
-				$voucher[] = [
-					'name'     => $this->language->get('text_voucher_theme'),
-					'href'     => $this->url->link('sale/voucher_theme', 'user_token=' . $this->session->data['user_token']),
-					'children' => []
-				];
-			}
-
-			if ($voucher) {
-				$sale[] = [
-					'name'     => $this->language->get('text_voucher'),
-					'href'     => '',
-					'children' => $voucher
 				];
 			}
 
@@ -593,6 +576,14 @@ class ColumnLeft extends \Opencart\System\Engine\Controller {
 				$localisation[] = [
 					'name'     => $this->language->get('text_currency'),
 					'href'     => $this->url->link('localisation/currency', 'user_token=' . $this->session->data['user_token']),
+					'children' => []
+				];
+			}
+
+			if ($this->user->hasPermission('access', 'localisation/identifier')) {
+				$localisation[] = [
+					'name'     => $this->language->get('text_identifier'),
+					'href'     => $this->url->link('localisation/identifier', 'user_token=' . $this->session->data['user_token']),
 					'children' => []
 				];
 			}

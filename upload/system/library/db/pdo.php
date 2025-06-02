@@ -9,7 +9,7 @@ class PDO {
 	/**
 	 * @var \PDO|null
 	 */
-	private ?\PDO $connection;
+	private ?\PDO $db;
 	/**
 	 * @var array<string, string>
 	 */
@@ -28,18 +28,20 @@ class PDO {
 	 * @param string $database
 	 * @param string $port
 	 */
-	public function __construct(string $hostname, string $username, string $password, string $database, string $port = '') {
-		if (!$port) {
+	public function __construct(array $option = []) {
+		if (isset($option['port'])) {
+			$port = $option['port'];
+		} else {
 			$port = '3306';
 		}
 
 		try {
-			$pdo = new \PDO('mysql:host=' . $hostname . ';port=' . $port . ';dbname=' . $database . ';charset=utf8mb4', $username, $password, [\PDO::ATTR_PERSISTENT => false, \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4 COLLATE utf8mb4_general_ci']);
+			$pdo = new \PDO('mysql:host=' . $option['hostname'] . ';port=' . $port . ';dbname=' . $option['database'] . ';charset=utf8mb4', $option['username'], $option['password'], [\PDO::ATTR_PERSISTENT => false, \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci']);
 		} catch (\PDOException $e) {
-			throw new \Exception('Error: Could not make a database link using ' . $username . '@' . $hostname . '!');
+			throw new \Exception('Error: Could not make a database link using ' . $option['username'] . '@' . $option['hostname'] . '!');
 		}
 
-		$this->connection = $pdo;
+		$this->db = $pdo;
 
 		$this->query("SET SESSION sql_mode = 'NO_ZERO_IN_DATE,NO_ENGINE_SUBSTITUTION'");
 		$this->query("SET FOREIGN_KEY_CHECKS = 0");
@@ -58,7 +60,7 @@ class PDO {
 	public function query(string $sql) {
 		$sql = preg_replace('/(?:\'\:)([a-z0-9]*.)(?:\')/', ':$1', $sql);
 
-		$statement = $this->connection->prepare($sql);
+		$statement = $this->db->prepare($sql);
 
 		try {
 			if ($statement && $statement->execute($this->data)) {
@@ -105,7 +107,7 @@ class PDO {
 	}
 
 	/**
-	 * countAffected
+	 * Count Affected
 	 *
 	 * @return int
 	 */
@@ -114,23 +116,23 @@ class PDO {
 	}
 
 	/**
-	 * getLastId
+	 * Get Last Id
 	 *
 	 * @return ?int
 	 */
 	public function getLastId(): ?int {
-		$id = $this->connection->lastInsertId();
+		$id = $this->db->lastInsertId();
 
 		return $id ? (int)$id : null;
 	}
 
 	/**
-	 * isConnected
+	 * Is Connected
 	 *
 	 * @return bool
 	 */
 	public function isConnected(): bool {
-		return $this->connection !== null;
+		return $this->db !== null;
 	}
 
 	/**
@@ -139,6 +141,6 @@ class PDO {
 	 * Closes the DB connection when this object is destroyed.
 	 */
 	public function __destruct() {
-		$this->connection = null;
+		$this->db = null;
 	}
 }

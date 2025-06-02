@@ -2,7 +2,6 @@
 <div id="content">
   <div class="page-header">
     <div class="container">
-      <div class="float-end">{{ language }}</div>
       <h1>{{ heading_title }}</h1>
     </div>
   </div>
@@ -26,7 +25,7 @@
                 <tr>
                   <td>{{ text_version }}</td>
                   <td>{{ php_version }}</td>
-                  <td>7.4+</td>
+                  <td>8.0+</td>
                   <td class="text-center">
                     {% if version %}
                       <span class="text-success"><i class="fa-solid fa-check"></i></span>
@@ -34,16 +33,15 @@
                       <span class="text-danger"><i class="fa-solid fa-circle-xmark"></i></span>
                     {% endif %}</td>
                 </tr>
-                <tr{% if register_globals %} class="table-danger"{% endif %}>
-                  <td>{{ text_global }}</td>
-                  <td>{% if register_globals %}
-                      {{ text_on }}
-                    {% else %}
-                      {{ text_off }}
+                <tr{% if open_basedir %} class="table-danger"{% endif %}>
+                  <td>{{ text_open_basedir }}</td>
+                  <td>{% if not open_basedir %}
+                    <span class="text-success">{{ open_basedir_current }}</span>
+                  {% else %}
+                    <span class="text-danger"> {{ open_basedir_current }}</span>
                     {% endif %}</td>
-                  <td>{{ text_off }}</td>
-                  <td class="text-center">
-                    {% if not register_globals %}
+                  <td>{{ open_basedir_required }}</td>
+                  <td class="text-center">{% if not open_basedir %}
                       <span class="text-success"><i class="fa-solid fa-check"></i></span>
                     {% else %}
                       <span class="text-danger"><i class="fa-solid fa-circle-xmark"></i></span>
@@ -59,6 +57,21 @@
                   <td>{{ text_off }}</td>
                   <td class="text-center">
                     {% if not error_magic_quotes_gpc %}
+                      <span class="text-success"><i class="fa-solid fa-check"></i></span>
+                    {% else %}
+                      <span class="text-danger"><i class="fa-solid fa-circle-xmark"></i></span>
+                    {% endif %}</td>
+                </tr>
+                <tr{% if register_globals %} class="table-danger"{% endif %}>
+                  <td>{{ text_global }}</td>
+                  <td>{% if register_globals %}
+                      {{ text_on }}
+                    {% else %}
+                      {{ text_off }}
+                    {% endif %}</td>
+                  <td>{{ text_off }}</td>
+                  <td class="text-center">
+                    {% if not register_globals %}
                       <span class="text-success"><i class="fa-solid fa-check"></i></span>
                     {% else %}
                       <span class="text-danger"><i class="fa-solid fa-circle-xmark"></i></span>
@@ -241,7 +254,7 @@
           </fieldset>
           <div class="row mt-3">
             <div class="col"><a href="{{ back }}" class="btn btn-light">{{ button_back }}</a></div>
-            <div class="col text-end"><input type="submit" id="button-continue" value="{{ button_continue }}" class="btn btn-primary"/></div>
+            <div class="col text-end"><button type="submit" id="button-continue" class="btn btn-primary">{{ button_continue }}</button></div>
           </div>
         </form>
       </div>
@@ -253,7 +266,7 @@ $('#form-step-2').on('submit', function(e) {
     e.preventDefault();
 
     $.ajax({
-        url: 'index.php?route=install/step_2.save&language=',
+        url: 'index.php?route=install/step_2.save&language={{ language }}',
         type: 'post',
         data: $('#form-step-2').serialize(),
         dataType: 'json',

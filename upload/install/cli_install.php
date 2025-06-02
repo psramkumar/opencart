@@ -10,6 +10,7 @@
 //                               --email       email@example.com
 //                               --password    password
 //                               --http_server http://localhost/opencart/
+//                               --language    en-gb
 //                               --db_driver   mysqli
 //                               --db_hostname localhost
 //                               --db_username root
@@ -24,7 +25,7 @@
 //
 // Example:
 //
-// php c://xampp/htdocs/opencart-master/upload/install/cli_install.php install --username admin --password mexico --email email@example.com --http_server http://localhost/opencart-master/upload/ --db_driver mysqli --db_hostname localhost --db_username root --db_database opencart-master --db_port 3306 --db_prefix oc_
+// php c://xampp/htdocs/opencart-master/upload/install/cli_install.php install --username admin --password --email email@example.com --http_server http://localhost/opencart-master/upload/ --language en-gb --db_driver mysqli --db_hostname localhost --db_username root --db_database opencart-master --db_port 3306 --db_prefix oc_
 //
 
 namespace Install;
@@ -95,6 +96,8 @@ set_error_handler(function(int $code, string $message, string $file, int $line) 
  */
 class CliInstall extends \Opencart\System\Engine\Controller {
 	/**
+	 * Index
+	 *
 	 * @return void
 	 */
 	public function index(): void {
@@ -134,6 +137,7 @@ class CliInstall extends \Opencart\System\Engine\Controller {
 		// Options
 		$option = [
 			'username'    => 'admin',
+			'language'    => 'en-gb',
 			'db_driver'   => 'mysqli',
 			'db_hostname' => 'localhost',
 			'db_password' => '',
@@ -194,8 +198,8 @@ class CliInstall extends \Opencart\System\Engine\Controller {
 		// Pre-installation check
 		$error = '';
 
-		if (version_compare(PHP_VERSION, '7.4', '<')) {
-			$error .= 'ERROR: You need to use PHP7.4+ or above for OpenCart to work!' . "\n";
+		if (version_compare(PHP_VERSION, '8.0', '<')) {
+			$error .= 'ERROR: You need to use PHP8.0+ or above for OpenCart to work!' . "\n";
 		}
 
 		if (!ini_get('file_uploads')) {
@@ -251,6 +255,13 @@ class CliInstall extends \Opencart\System\Engine\Controller {
 			$error .= 'ERROR: E-Mail Address does not appear to be valid!' . "\n";
 		}
 
+		// Make sure there is a SQL file to load sample data
+		$file = DIR_APPLICATION . 'opencart-' . basename($option['language']) . '.sql';
+
+		if (!is_file($file)) {
+			$error .= 'ERROR: Install language not available!' . "\n";
+		}
+
 		// If not cloud then we validate the password
 		if ($option['db_password']) {
 			if (!oc_validate_length(html_entity_decode($option['password'], ENT_QUOTES, 'UTF-8'), 5, 20)) {
@@ -261,9 +272,6 @@ class CliInstall extends \Opencart\System\Engine\Controller {
 		if ($error) {
 			return $error;
 		}
-
-		// Make sure there is a SQL file to load sample data
-		$file = DIR_APPLICATION . 'opencart.sql';
 
 		if (!is_file($file)) {
 			return 'ERROR: Could not load SQL file: ' . $file;
@@ -283,8 +291,19 @@ class CliInstall extends \Opencart\System\Engine\Controller {
 
 		try {
 			// Database
-			$db = new \Opencart\System\Library\DB($db_driver, $db_hostname, $db_username, $db_password, $db_database, $db_port, $db_ssl_key, $db_ssl_cert, $db_ssl_ca);
+			$db = new \Opencart\System\Library\DB([
+				'engine' => $db_driver,
+				'hostname' => $db_hostname,
+				'username' => $db_username,
+				'password' => $db_password,
+				'database' => $db_database,
+				'port' => $db_port,
+				'ssl_key' => $db_ssl_key,
+				'ssl_cert' => $db_ssl_cert,
+				'ssl_ca' => $db_ssl_ca
+			]);
 		} catch (\Exception $e) {
+			echo $e->getMessage();
 			return 'Error: Could not make a database link using ' . $db_username . '@' . $db_hostname . '!' . "\n";
 		}
 
@@ -378,7 +397,7 @@ class CliInstall extends \Opencart\System\Engine\Controller {
 			$db->query("DELETE FROM `" . $db_prefix . "setting` WHERE `key` = 'config_api_id'");
 			$db->query("INSERT INTO `" . $db_prefix . "setting` SET `code` = 'config', `key` = 'config_api_id', `value` = '" . (int)$last_id . "'");
 
-			// set the current years prefix
+			// Set the current years prefix
 			$db->query("UPDATE `" . $db_prefix . "setting` SET `value` = 'INV-" . date('Y') . "-00' WHERE `key` = 'config_invoice_prefix'");
 		}
 

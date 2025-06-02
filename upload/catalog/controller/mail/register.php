@@ -6,9 +6,10 @@ namespace Opencart\Catalog\Controller\Mail;
  * @package Opencart\Catalog\Controller\Mail
  */
 class Register extends \Opencart\System\Engine\Controller {
-	// catalog/model/account/customer/addCustomer/after
 	/**
 	 * Index
+	 *
+	 * catalog/model/account/customer.addCustomer/after
 	 *
 	 * @param string            $route
 	 * @param array<int, mixed> $args
@@ -27,6 +28,7 @@ class Register extends \Opencart\System\Engine\Controller {
 
 		$data['text_welcome'] = sprintf($this->language->get('text_welcome'), $store_name);
 
+		// Customer Group
 		$this->load->model('account/customer_group');
 
 		if (isset($args[0]['customer_group_id'])) {
@@ -68,10 +70,10 @@ class Register extends \Opencart\System\Engine\Controller {
 		}
 	}
 
-	// catalog/model/account/customer/addCustomer/after
-
 	/**
 	 * Alert
+	 *
+	 * catalog/model/account/customer.addCustomer/after
 	 *
 	 * @param string            $route
 	 * @param array<int, mixed> $args
@@ -95,6 +97,7 @@ class Register extends \Opencart\System\Engine\Controller {
 
 			$data['login'] = $this->url->link('account/login', 'language=' . $this->config->get('config_language'), true);
 
+			// Customer Group
 			$this->load->model('account/customer_group');
 
 			if (isset($args[0]['customer_group_id'])) {

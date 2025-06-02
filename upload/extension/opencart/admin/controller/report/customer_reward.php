@@ -61,6 +61,7 @@ class CustomerReward extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Setting
 			$this->load->model('setting/setting');
 
 			$this->model_setting_setting->editSetting('report_customer_reward', $this->request->post);
@@ -128,6 +129,7 @@ class CustomerReward extends \Opencart\System\Engine\Controller {
 			$page = 1;
 		}
 
+		// Customers
 		$data['customers'] = [];
 
 		$filter_data = [
@@ -138,8 +140,10 @@ class CustomerReward extends \Opencart\System\Engine\Controller {
 			'limit'             => $this->config->get('config_pagination')
 		];
 
+		// Extension
 		$this->load->model('extension/opencart/report/customer');
 
+		// Total Customers
 		$customer_total = $this->model_extension_opencart_report_customer->getTotalRewardPoints($filter_data);
 
 		$results = $this->model_extension_opencart_report_customer->getRewardPoints($filter_data);
@@ -152,7 +156,7 @@ class CustomerReward extends \Opencart\System\Engine\Controller {
 				'status'         => ($result['status'] ? $this->language->get('text_enabled') : $this->language->get('text_disabled')),
 				'points'         => $result['points'],
 				'orders'         => $result['orders'],
-				'total'          => $this->currency->format((float)$result['total'], $this->config->get('config_currency')),
+				'total'          => (float)$result['total'],
 				'edit'           => $this->url->link('customer/customer.form', 'user_token=' . $this->session->data['user_token'] . '&customer_id=' . $result['customer_id'])
 			];
 		}
@@ -171,6 +175,7 @@ class CustomerReward extends \Opencart\System\Engine\Controller {
 			$url .= '&filter_customer=' . urlencode($this->request->get['filter_customer']);
 		}
 
+		// Pagination
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $customer_total,
 			'page'  => $page,
@@ -183,6 +188,8 @@ class CustomerReward extends \Opencart\System\Engine\Controller {
 		$data['filter_date_start'] = $filter_date_start;
 		$data['filter_date_end'] = $filter_date_end;
 		$data['filter_customer'] = $filter_customer;
+
+		$data['currency'] = $this->config->get('config_currency');
 
 		$data['user_token'] = $this->session->data['user_token'];
 

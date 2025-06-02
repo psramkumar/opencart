@@ -7,6 +7,8 @@ namespace Opencart\Install\Controller\Install;
  */
 class Step3 extends \Opencart\System\Engine\Controller {
 	/**
+	 * Index
+	 *
 	 * @return void
 	 */
 	public function index(): void {
@@ -64,17 +66,18 @@ class Step3 extends \Opencart\System\Engine\Controller {
 
 		$data['back'] = $this->url->link('install/step_2', 'language=' . $this->config->get('language_code'));
 
-		$data['language_code'] = $this->config->get('language_code');
+		$data['language'] = $this->config->get('language_code');
 
 		$data['footer'] = $this->load->controller('common/footer');
 		$data['header'] = $this->load->controller('common/header');
-		$data['language'] = $this->load->controller('common/language');
 
 		$this->response->setOutput($this->load->view('install/step_3', $data));
 	}
 
 	/**
-	 * @return bool
+	 * Save
+	 *
+	 * @return void
 	 */
 	public function save(): void {
 		$this->load->language('install/step_3');
@@ -113,9 +116,22 @@ class Step3 extends \Opencart\System\Engine\Controller {
 
 		if (!$json) {
 			try {
-				$db = new \Opencart\System\Library\DB($this->request->post['db_driver'], html_entity_decode($this->request->post['db_hostname'], ENT_QUOTES, 'UTF-8'), html_entity_decode($this->request->post['db_username'], ENT_QUOTES, 'UTF-8'), html_entity_decode($this->request->post['db_password'], ENT_QUOTES, 'UTF-8'), html_entity_decode($this->request->post['db_database'], ENT_QUOTES, 'UTF-8'), $this->request->post['db_port'], $this->request->post['db_ssl_key'], $this->request->post['db_ssl_cert'], $this->request->post['db_ssl_ca']);
+				$option = [
+					'engine'   => $this->request->post['db_driver'],
+					'hostname' => html_entity_decode($this->request->post['db_hostname'], ENT_QUOTES, 'UTF-8'),
+					'username' => html_entity_decode($this->request->post['db_username'], ENT_QUOTES, 'UTF-8'),
+					'password' => html_entity_decode($this->request->post['db_password'], ENT_QUOTES, 'UTF-8'),
+					'database' => html_entity_decode($this->request->post['db_database'], ENT_QUOTES, 'UTF-8'),
+					'port'     => $this->request->post['db_port'],
+					'prefix'   => $this->request->post['db_prefix'],
+					'ssl_key'  => html_entity_decode($this->request->post['db_ssl_key'], ENT_QUOTES, 'UTF-8'),
+					'ssl_cert' => html_entity_decode($this->request->post['db_ssl_cert'], ENT_QUOTES, 'UTF-8'),
+					'ssl_ca'   => html_entity_decode($this->request->post['db_ssl_ca'], ENT_QUOTES, 'UTF-8')
+				];
+
+				$this->db = new \Opencart\System\Library\DB($option);
 			} catch (\Exception $e) {
-				$json['error']['warning'] = $e->getMessage();
+				$json['error']['warning'] = $this->language->get('error_db_connect');
 			}
 		}
 
@@ -140,6 +156,7 @@ class Step3 extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Install
 			$this->load->model('install/install');
 
 			$this->model_install_install->database($this->request->post);
@@ -176,7 +193,7 @@ class Step3 extends \Opencart\System\Engine\Controller {
 			$output .= 'define(\'DB_PASSWORD\', \'' . addslashes(html_entity_decode($this->request->post['db_password'], ENT_QUOTES, 'UTF-8')) . '\');' . "\n";
 			$output .= 'define(\'DB_DATABASE\', \'' . addslashes($this->request->post['db_database']) . '\');' . "\n";
 			$output .= 'define(\'DB_PORT\', \'' . addslashes($this->request->post['db_port']) . '\');' . "\n";
-			$output .= 'define(\'DB_PREFIX\', \'' . addslashes($this->request->post['db_prefix']) . '\');';
+			$output .= 'define(\'DB_PREFIX\', \'' . addslashes($this->request->post['db_prefix']) . '\');' . "\n";
 
 			if (!empty($this->request->post['db_ssl_key'])) {
 				$output .= 'define(\'DB_SSL_KEY\', \'' . addslashes($this->request->post['db_ssl_key']) . '\');' . "\n";
@@ -250,9 +267,9 @@ class Step3 extends \Opencart\System\Engine\Controller {
 			}
 
 			if ((isset($this->request->post['db_ssl_ca']) && $this->request->post['db_ssl_ca'] !== '')) {
-				$output .= 'define(\'DB_SSL_CA\', \'' . addslashes($this->request->post['db_ssl_ca']) . '\');' . "\n";
+				$output .= 'define(\'DB_SSL_CA\', \'' . addslashes($this->request->post['db_ssl_ca']) . '\');' . "\n\n";
 			} else {
-				$output .= 'define(\'DB_SSL_CA\', \'\');' . "\n";
+				$output .= 'define(\'DB_SSL_CA\', \'\');' . "\n\n";
 			}
 
 			$output .= '// OpenCart API' . "\n";

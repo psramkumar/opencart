@@ -3,13 +3,15 @@ namespace Opencart\Catalog\Model\Extension\Opencart\Payment;
 /**
  * Class COD
  *
+ * Can be called from $this->load->model('extension/opencart/payment/cod');
+ *
  * @package Opencart\Catalog\Model\Extension\Opencart\Payment
  */
 class COD extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Methods
 	 *
-	 * @param array<string, mixed> $address
+	 * @param array<string, mixed> $address array of data
 	 *
 	 * @return array<string, mixed>
 	 */
@@ -25,6 +27,7 @@ class COD extends \Opencart\System\Engine\Model {
 		} elseif (!$this->config->get('payment_cod_geo_zone_id')) {
 			$status = true;
 		} else {
+			// Geo Zone
 			$this->load->model('localisation/geo_zone');
 
 			$results = $this->model_localisation_geo_zone->getGeoZone((int)$this->config->get('payment_cod_geo_zone_id'), (int)$address['country_id'], (int)$address['zone_id']);

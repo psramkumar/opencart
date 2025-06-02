@@ -107,6 +107,7 @@ class User extends \Opencart\System\Engine\Controller {
 
 		$data['list'] = $this->getList();
 
+		// User Groups
 		$this->load->model('user/user_group');
 
 		$data['user_groups'] = $this->model_user_user_group->getUserGroups();
@@ -143,7 +144,7 @@ class User extends \Opencart\System\Engine\Controller {
 	 *
 	 * @return string
 	 */
-	protected function getList(): string {
+	public function getList(): string {
 		if (isset($this->request->get['filter_username'])) {
 			$filter_username = $this->request->get['filter_username'];
 		} else {
@@ -238,6 +239,7 @@ class User extends \Opencart\System\Engine\Controller {
 
 		$data['action'] = $this->url->link('user/user.list', 'user_token=' . $this->session->data['user_token'] . $url);
 
+		// Users
 		$data['users'] = [];
 
 		$filter_data = [
@@ -259,15 +261,9 @@ class User extends \Opencart\System\Engine\Controller {
 
 		foreach ($results as $result) {
 			$data['users'][] = [
-				'user_id'    => $result['user_id'],
-				'username'   => $result['username'],
-				'name'       => $result['name'],
-				'email'      => $result['email'],
-				'user_group' => $result['user_group'],
-				'status'     => ($result['status'] ? $this->language->get('text_enabled') : $this->language->get('text_disabled')),
 				'date_added' => date($this->language->get('date_format_short'), strtotime($result['date_added'])),
 				'edit'       => $this->url->link('user/user.form', 'user_token=' . $this->session->data['user_token'] . '&user_id=' . $result['user_id'] . $url)
-			];
+			] + $result;
 		}
 
 		$url = '';
@@ -302,6 +298,7 @@ class User extends \Opencart\System\Engine\Controller {
 			$url .= '&order=ASC';
 		}
 
+		// Sorts
 		$data['sort_username'] = $this->url->link('user/user.list', 'user_token=' . $this->session->data['user_token'] . '&sort=username' . $url);
 		$data['sort_name'] = $this->url->link('user/user.list', 'user_token=' . $this->session->data['user_token'] . '&sort=name' . $url);
 		$data['sort_email'] = $this->url->link('user/user.list', 'user_token=' . $this->session->data['user_token'] . '&sort=u.email' . $url);
@@ -343,8 +340,10 @@ class User extends \Opencart\System\Engine\Controller {
 			$url .= '&order=' . $this->request->get['order'];
 		}
 
+		// Total Users
 		$user_total = $this->model_user_user->getTotalUsers();
 
+		// Pagination
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $user_total,
 			'page'  => $page,
@@ -419,20 +418,21 @@ class User extends \Opencart\System\Engine\Controller {
 
 		$data['breadcrumbs'][] = [
 			'text' => $this->language->get('heading_title'),
-			'href' => $this->url->link('user/user_permission', 'user_token=' . $this->session->data['user_token'] . $url)
+			'href' => $this->url->link('user/user', 'user_token=' . $this->session->data['user_token'] . $url)
 		];
 
 		$data['save'] = $this->url->link('user/user.save', 'user_token=' . $this->session->data['user_token']);
 		$data['back'] = $this->url->link('user/user', 'user_token=' . $this->session->data['user_token'] . $url);
 
+		// User
 		if (isset($this->request->get['user_id'])) {
 			$this->load->model('user/user');
 
 			$user_info = $this->model_user_user->getUser($this->request->get['user_id']);
 		}
 
-		if (isset($this->request->get['user_id'])) {
-			$data['user_id'] = (int)$this->request->get['user_id'];
+		if (!empty($user_info)) {
+			$data['user_id'] = $user_info['user_id'];
 		} else {
 			$data['user_id'] = 0;
 		}
@@ -443,6 +443,7 @@ class User extends \Opencart\System\Engine\Controller {
 			$data['username'] = '';
 		}
 
+		// User Groups
 		$this->load->model('user/user_group');
 
 		$data['user_groups'] = $this->model_user_user_group->getUserGroups();
@@ -471,6 +472,7 @@ class User extends \Opencart\System\Engine\Controller {
 			$data['email'] = '';
 		}
 
+		// Image
 		if (!empty($user_info)) {
 			$data['image'] = $user_info['image'];
 		} else {
@@ -519,63 +521,87 @@ class User extends \Opencart\System\Engine\Controller {
 			$json['error']['warning'] = $this->language->get('error_permission');
 		}
 
-		if (!oc_validate_length($this->request->post['username'], 3, 20)) {
+		$required = [
+			'user_id'   => 0,
+			'username'  => '',
+			'firstname' => '',
+			'lastname'  => '',
+			'email'     => '',
+			'password'  => '',
+		];
+
+		$post_info = $this->request->post + $required;
+
+		if (!oc_validate_length($post_info['username'], 3, 20)) {
 			$json['error']['username'] = $this->language->get('error_username');
 		}
 
+		// User
 		$this->load->model('user/user');
 
-		$user_info = $this->model_user_user->getUserByUsername($this->request->post['username']);
+		$user_info = $this->model_user_user->getUserByUsername($post_info['username']);
 
-		if (!$this->request->post['user_id']) {
-			if ($user_info) {
-				$json['error']['warning'] = $this->language->get('error_username_exists');
-			}
-		} else {
-			if ($user_info && ($this->request->post['user_id'] != $user_info['user_id'])) {
-				$json['error']['warning'] = $this->language->get('error_username_exists');
-			}
+		if ($user_info && (!$post_info['user_id'] || ($post_info['user_id'] != $user_info['user_id']))) {
+			$json['error']['warning'] = $this->language->get('error_username_exists');
 		}
 
-		if (!oc_validate_length($this->request->post['firstname'], 1, 32)) {
+		if (!oc_validate_length($post_info['firstname'], 1, 32)) {
 			$json['error']['firstname'] = $this->language->get('error_firstname');
 		}
 
-		if (!oc_validate_length($this->request->post['lastname'], 1, 32)) {
+		if (!oc_validate_length($post_info['lastname'], 1, 32)) {
 			$json['error']['lastname'] = $this->language->get('error_lastname');
 		}
 
-		if (!oc_validate_email($this->request->post['email'])) {
+		if (!oc_validate_email($post_info['email'])) {
 			$json['error']['email'] = $this->language->get('error_email');
 		}
 
-		$user_info = $this->model_user_user->getUserByEmail($this->request->post['email']);
+		$user_info = $this->model_user_user->getUserByEmail($post_info['email']);
 
-		if (!$this->request->post['user_id']) {
-			if ($user_info) {
-				$json['error']['warning'] = $this->language->get('error_email_exists');
-			}
-		} else {
-			if ($user_info && ($this->request->post['user_id'] != $user_info['user_id'])) {
-				$json['error']['warning'] = $this->language->get('error_email_exists');
-			}
+		if ($user_info && (!$post_info['user_id'] || ($post_info['user_id'] != $user_info['user_id']))) {
+			$json['error']['warning'] = $this->language->get('error_email_exists');
 		}
 
-		if ($this->request->post['password'] || (!isset($this->request->post['user_id']))) {
-			if (!oc_validate_length(html_entity_decode($this->request->post['password'], ENT_QUOTES, 'UTF-8'), 6, 40)) {
+		if ($post_info['password'] || (!isset($post_info['user_id']))) {
+			$password = html_entity_decode($post_info['password'], ENT_QUOTES, 'UTF-8');
+
+			if (!oc_validate_length($password, (int)$this->config->get('config_user_password_length'), 40)) {
 				$json['error']['password'] = $this->language->get('error_password');
 			}
 
-			if ($this->request->post['password'] != $this->request->post['confirm']) {
+			$required = [];
+
+			if ($this->config->get('config_user_password_uppercase') && !preg_match('/[A-Z]/', $password)) {
+				$required[] = $this->language->get('error_password_uppercase');
+			}
+
+			if ($this->config->get('config_user_password_lowercase') && !preg_match('/[a-z]/', $password)) {
+				$required[] = $this->language->get('error_password_lowercase');
+			}
+
+			if ($this->config->get('config_user_password_number') && !preg_match('/[0-9]/', $password)) {
+				$required[] = $this->language->get('error_password_number');
+			}
+
+			if ($this->config->get('config_user_password_symbol') && !preg_match('/[^a-zA-Z0-9]/', $password)) {
+				$required[] = $this->language->get('error_password_symbol');
+			}
+
+			if ($required) {
+				$json['error']['password'] = sprintf($this->language->get('error_password'), implode(', ', $required), (int)$this->config->get('config_user_password_length'));
+			}
+
+			if ($post_info['password'] != $post_info['confirm']) {
 				$json['error']['confirm'] = $this->language->get('error_confirm');
 			}
 		}
 
 		if (!$json) {
-			if (!$this->request->post['user_id']) {
-				$json['user_id'] = $this->model_user_user->addUser($this->request->post);
+			if (!$post_info['user_id']) {
+				$json['user_id'] = $this->model_user_user->addUser($post_info);
 			} else {
-				$this->model_user_user->editUser($this->request->post['user_id'], $this->request->post);
+				$this->model_user_user->editUser($post_info['user_id'], $post_info);
 			}
 
 			$json['success'] = $this->language->get('text_success');
@@ -596,7 +622,7 @@ class User extends \Opencart\System\Engine\Controller {
 		$json = [];
 
 		if (isset($this->request->post['selected'])) {
-			$selected = $this->request->post['selected'];
+			$selected = (array)$this->request->post['selected'];
 		} else {
 			$selected = [];
 		}
@@ -612,6 +638,7 @@ class User extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// User
 			$this->load->model('user/user');
 
 			foreach ($selected as $user_id) {
@@ -656,6 +683,7 @@ class User extends \Opencart\System\Engine\Controller {
 
 		$limit = 10;
 
+		// Authorizes
 		$data['authorizes'] = [];
 
 		$this->load->model('user/user');
@@ -664,18 +692,17 @@ class User extends \Opencart\System\Engine\Controller {
 
 		foreach ($results as $result) {
 			$data['authorizes'][] = [
-				'token'      => $result['token'],
-				'ip'         => $result['ip'],
-				'user_agent' => $result['user_agent'],
-				'status'     => $result['status'] ? $this->language->get('text_enabled') : $this->language->get('text_disabled'),
-				'total'      => $result['total'],
-				'date_added' => date($this->language->get('datetime_format'), strtotime($result['date_added'])),
-				'delete'     => $this->url->link('user/user.deleteAuthorize', 'user_token=' . $this->session->data['user_token'] . '&user_authorize_id=' . $result['user_authorize_id'])
-			];
+				'status'      => $result['status'],
+				'date_added'  => date($this->language->get('datetime_format'), strtotime($result['date_added'])),
+				'date_expire' => $result['date_expire'] ? date($this->language->get('date_format_short'), strtotime($result['date_expire'])) : '',
+				'delete'      => $this->url->link('user/user.deleteAuthorize', 'user_token=' . $this->session->data['user_token'] . '&user_authorize_id=' . $result['user_authorize_id'])
+			] + $result;
 		}
 
+		// Total Authorizes
 		$authorize_total = $this->model_user_user->getTotalAuthorizes($user_id);
 
+		// Pagination
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $authorize_total,
 			'page'  => $page,
@@ -714,6 +741,7 @@ class User extends \Opencart\System\Engine\Controller {
 			$json['error'] = $this->language->get('error_permission');
 		}
 
+		// User
 		$this->load->model('user/user');
 
 		$authorize_info = $this->model_user_user->getAuthorize($user_authorize_id);
@@ -723,7 +751,7 @@ class User extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
-			$this->model_user_user->deleteAuthorize($authorize_info['user_id'], $user_authorize_id);
+			$this->model_user_user->deleteAuthorizes($authorize_info['user_id'], $user_authorize_id);
 
 			// If the token is still present, then we enforce the user to log out automatically.
 			if ($authorize_info['token'] == $token) {
@@ -770,6 +798,7 @@ class User extends \Opencart\System\Engine\Controller {
 
 		$limit = 10;
 
+		// User
 		$data['logins'] = [];
 
 		$this->load->model('user/user');
@@ -777,15 +806,13 @@ class User extends \Opencart\System\Engine\Controller {
 		$results = $this->model_user_user->getLogins($user_id, ($page - 1) * $limit, $limit);
 
 		foreach ($results as $result) {
-			$data['logins'][] = [
-				'ip'         => $result['ip'],
-				'user_agent' => $result['user_agent'],
-				'date_added' => date($this->language->get('datetime_format'), strtotime($result['date_added']))
-			];
+			$data['logins'][] = ['date_added' => date($this->language->get('datetime_format'), strtotime($result['date_added']))] + $result;
 		}
 
+		// Total Logins
 		$login_total = $this->model_user_user->getTotalLogins($user_id);
 
+		// Pagination
 		$data['pagination'] = $this->load->controller('common/pagination', [
 			'total' => $login_total,
 			'page'  => $page,
@@ -825,6 +852,7 @@ class User extends \Opencart\System\Engine\Controller {
 				$filter_email = '';
 			}
 
+			// User
 			$filter_data = [
 				'filter_username' => $filter_username,
 				'filter_name'     => $filter_name,
@@ -838,16 +866,7 @@ class User extends \Opencart\System\Engine\Controller {
 			$results = $this->model_user_user->getUsers($filter_data);
 
 			foreach ($results as $result) {
-				$json[] = [
-					'user_id'       => $result['user_id'],
-					'user_group_id' => $result['user_group_id'],
-					'username'      => $result['username'],
-					'name'          => strip_tags(html_entity_decode($result['name'], ENT_QUOTES, 'UTF-8')),
-					'user_group'    => $result['user_group'],
-					'firstname'     => $result['firstname'],
-					'lastname'      => $result['lastname'],
-					'email'         => $result['email']
-				];
+				$json[] = ['name' => strip_tags(html_entity_decode($result['name'], ENT_QUOTES, 'UTF-8'))] + $result;
 			}
 		}
 

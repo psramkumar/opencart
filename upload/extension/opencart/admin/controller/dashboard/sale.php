@@ -69,6 +69,7 @@ class Sale extends \Opencart\System\Engine\Controller {
 		}
 
 		if (!$json) {
+			// Setting
 			$this->load->model('setting/setting');
 
 			$this->model_setting_setting->editSetting('dashboard_sale', $this->request->post);
@@ -88,12 +89,11 @@ class Sale extends \Opencart\System\Engine\Controller {
 	public function dashboard(): string {
 		$this->load->language('extension/opencart/dashboard/sale');
 
+		// Sale
 		$this->load->model('extension/opencart/report/sale');
 
 		$today = $this->model_extension_opencart_report_sale->getTotalSales(['filter_date_added' => date('Y-m-d', strtotime('-1 day'))]);
-
 		$yesterday = $this->model_extension_opencart_report_sale->getTotalSales(['filter_date_added' => date('Y-m-d', strtotime('-2 day'))]);
-
 		$difference = $today - $yesterday;
 
 		if ($difference && (int)$today) {
@@ -102,6 +102,7 @@ class Sale extends \Opencart\System\Engine\Controller {
 			$data['percentage'] = 0;
 		}
 
+		// Total Sales
 		$sale_total = $this->model_extension_opencart_report_sale->getTotalSales();
 
 		if ($sale_total > 1000000000000) {

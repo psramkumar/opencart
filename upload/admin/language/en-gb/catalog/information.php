@@ -7,12 +7,14 @@ $_['text_success']            = 'Success: You have modified information!';
 $_['text_list']               = 'Information List';
 $_['text_add']                = 'Add Information';
 $_['text_edit']               = 'Edit Information';
-$_['text_default']            = 'Default';
+$_['text_general']            = 'General';
+$_['text_meta']               = 'Meta Tags';
 $_['text_keyword']            = 'Do not use spaces, instead replace spaces with - and make sure the SEO URL is globally unique.';
 
 // Column
 $_['column_title']            = 'Information Title';
 $_['column_sort_order']       = 'Sort Order';
+$_['column_status']           = 'Status';
 $_['column_action']           = 'Action';
 
 // Entry

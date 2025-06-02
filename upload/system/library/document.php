@@ -3,7 +3,7 @@
  * @package		OpenCart
  *
  * @author		Daniel Kerr
- * @copyright	Copyright (c) 2005 - 2017, OpenCart, Ltd. (https://www.opencart.com/)
+ * @copyright	Copyright (c) 2005 - 2022, OpenCart, Ltd. (https://www.opencart.com/)
  * @license		https://opensource.org/licenses/GPL-3.0
  *
  * @see		https://www.opencart.com
@@ -37,9 +37,13 @@ class Document {
 	 * @var array<string, array<string, array<string, string>>>
 	 */
 	private array $scripts = [];
+	/**
+	 * @var array<string, string>
+	 */
+	private array $meta = [];
 
 	/**
-	 * setTitle
+	 * Set Title
 	 *
 	 * @param string $title
 	 *
@@ -50,7 +54,7 @@ class Document {
 	}
 
 	/**
-	 * getTitle
+	 * Get Title
 	 *
 	 * @return string
 	 */
@@ -59,7 +63,7 @@ class Document {
 	}
 
 	/**
-	 * setDescription
+	 * Set Description
 	 *
 	 * @param string $description
 	 *
@@ -171,5 +175,25 @@ class Document {
 		} else {
 			return [];
 		}
+	}
+
+	/**
+	 * Add Meta
+	 *
+	 * @param string $meta
+	 *
+	 * @return void
+	 */
+	public function addMeta(string $meta): void {
+		$this->meta[$meta] = $meta;
+	}
+
+	/**
+	 * Get Meta
+	 *
+	 * @return array<string, string>
+	 */
+	public function getMeta() {
+		return $this->meta;
 	}
 }

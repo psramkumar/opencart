@@ -5,6 +5,9 @@ $autoloader->register('Opencart\\' . APPLICATION, DIR_APPLICATION);
 $autoloader->register('Opencart\Extension', DIR_EXTENSION);
 $autoloader->register('Opencart\System', DIR_SYSTEM);
 
+//require_once(DIR_SYSTEM . 'helper/vendor.php');
+//oc_generate_vendor();
+
 require_once(DIR_SYSTEM . 'vendor.php');
 
 // Registry
@@ -13,7 +16,6 @@ $registry->set('autoloader', $autoloader);
 
 // Config
 $config = new \Opencart\System\Engine\Config();
-
 $config->addPath(DIR_CONFIG);
 // Load the default config
 $config->load('default');
@@ -32,6 +34,11 @@ $registry->set('log', $log);
 
 // Error Handler
 set_error_handler(function(int $code, string $message, string $file, int $line) use ($log, $config) {
+	// error suppressed with @
+	if (!(error_reporting() & $code)) {
+		return false;
+	}
+
 	switch ($code) {
 		case E_NOTICE:
 		case E_USER_NOTICE:
@@ -55,7 +62,7 @@ set_error_handler(function(int $code, string $message, string $file, int $line) 
 	}
 
 	if ($config->get('error_display')) {
-		echo '<b>' . $error . '</b>: ' . $message . ' in <b>' . $file . '</b> on line <b>' . $line . '</b>';
+		echo $error . ': ' . $message . ' in ' . $file . ' on line ' . $line . "\n";
 	} else {
 		header('Location: ' . $config->get('error_page'));
 		exit();
@@ -66,12 +73,30 @@ set_error_handler(function(int $code, string $message, string $file, int $line) 
 
 // Exception Handler
 set_exception_handler(function(\Throwable $e) use ($log, $config): void {
+	$output  = 'Error: ' . $e->getMessage() . "\n";
+	$output .= 'File: ' . $e->getFile() . "\n";
+	$output .= 'Line: ' . $e->getLine() . "\n\n";
+
+	if ($config->get('error_debug')) {
+		foreach ($e->getTrace() as $key => $trace) {
+			$output .= 'Backtrace: ' . $key . "\n";
+			$output .= 'File: ' . $trace['file'] . "\n";
+			$output .= 'Line: ' . $trace['line'] . "\n";
+
+			if (isset($trace['class'])) {
+				$output .= 'Class: ' . $trace['class'] . "\n";
+			}
+
+			$output .= 'Function: ' . $trace['function'] . "\n\n";
+		}
+	}
+
 	if ($config->get('error_log')) {
-		$log->write($e->getMessage() . ': in ' . $e->getFile() . ' on line ' . $e->getLine());
+		$log->write(trim($output));
 	}
 
 	if ($config->get('error_display')) {
-		echo '<b>' . $e->getMessage() . '</b>: in <b>' . $e->getFile() . '</b> on line <b>' . $e->getLine() . '</b>';
+		echo $output;
 	} else {
 		header('Location: ' . $config->get('error_page'));
 		exit();
@@ -127,7 +152,7 @@ $response->setCompression((int)$config->get('response_compression'));
 
 // Database
 if ($config->get('db_autostart')) {
-	$db = new \Opencart\System\Library\DB($config->get('db_engine'), $config->get('db_hostname'), $config->get('db_username'), $config->get('db_password'), $config->get('db_database'), $config->get('db_port'), $config->get('db_ssl_key'), $config->get('db_ssl_cert'), $config->get('db_ssl_ca'));
+	$db = new \Opencart\System\Library\DB($config->get('db_option'));
 	$registry->set('db', $db);
 }
 
@@ -211,6 +236,11 @@ if (isset($request->get['route'])) {
 	$route = (string)$request->get['route'];
 } else {
 	$route = (string)$config->get('action_default');
+}
+
+// To block calls to controller methods we want to keep from being accessed directly
+if (str_contains($route, '._')) {
+	$action = new \Opencart\System\Engine\Action($config->get('action_error'));
 }
 
 if ($action) {

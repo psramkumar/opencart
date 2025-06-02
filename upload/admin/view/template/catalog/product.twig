@@ -73,7 +73,7 @@
                 </select>
               </div>
               <div class="text-end">
-                <button type="button" id="button-filter" class="btn btn-light"><i class="fa-solid fa-filter"></i> {{ button_filter }}</button>
+                <button type="submit" id="button-filter" class="btn btn-light"><i class="fa-solid fa-filter"></i> {{ button_filter }}</button>
                 <button type="reset" data-bs-toggle="tooltip" title="{{ button_reset }}" class="btn btn-outline-secondary"><i class="fa-solid fa-filter-circle-xmark"></i></button>
               </div>
             </form>
@@ -83,79 +83,54 @@
       <div class="col col-lg-9 col-md-12">
         <div class="card">
           <div class="card-header"><i class="fa-solid fa-list"></i> {{ text_list }}</div>
-          <div id="product" class="card-body">{{ list }}</div>
+          <div id="list" class="card-body">{{ list }}</div>
         </div>
       </div>
     </div>
   </div>
 </div>
 <script type="text/javascript"><!--
-$('#product').on('click', 'thead a, .pagination a', function(e) {
+$('#list').on('click', 'thead a, .pagination a', function(e) {
     e.preventDefault();
 
-    $('#product').load(this.href);
+    $('#list').load(this.href);
 });
 
-$('#button-filter').on('click', function() {
-    var url = '';
+$('#form-filter').on('submit', function(e) {
+    e.preventDefault();
 
-    var filter_name = $('#input-name').val();
+    let url = $(this).serialize();
 
-    if (filter_name) {
-        url += '&filter_name=' + encodeURIComponent(filter_name);
-    }
+    window.history.pushState({}, null, 'index.php?route=catalog/product&user_token={{ user_token }}&' + url);
 
-    var filter_model = $('#input-model').val();
+    $('#list').load('index.php?route=catalog/product.list&user_token={{ user_token }}&' + url);
+});
 
-    if (filter_model) {
-        url += '&filter_model=' + encodeURIComponent(filter_model);
-    }
+$('#list').on('change', '.form-switch .form-check-input', function(e) {
+    e.preventDefault();
 
-    var filter_category_id = $('#input-category-id').val();
+    var element = this;
 
-    if (filter_category_id) {
-        url += '&filter_category_id=' + filter_category_id;
-	}
+    $.ajax({
+        url: $(element).val(),
+        dataType: 'json',
+        success: function(json) {
+            $('.alert-dismissible').remove();
 
-    var filter_manufacturer_id = $('#input-manufacturer-id').val();
+            if (json['error']) {
+                $('#alert').prepend('<div class="alert alert-danger alert-dismissible"><i class="fa-solid fa-circle-exclamation"></i> ' + json['error'] + ' <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
+            }
 
-    if (filter_manufacturer_id) {
-        url += '&filter_manufacturer_id=' + filter_manufacturer_id;
-    }
+            if (json['success']) {
+                $('#alert').prepend('<div class="alert alert-success alert-dismissible"><i class="fa-solid fa-check-circle"></i> ' + json['success'] + ' <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
 
-    var filter_price_from = $('#input-price-from').val();
-
-    if (filter_price_from) {
-        url += '&filter_price_from=' + encodeURIComponent(filter_price_from);
-    }
-
-    var filter_price_to = $('#input-price-to').val();
-
-    if (filter_price_to) {
-        url += '&filter_price_to=' + encodeURIComponent(filter_price_to);
-    }
-
-    var filter_quantity_from = $('#input-quantity-from').val();
-
-    if (filter_quantity_from) {
-        url += '&filter_quantity_from=' + filter_quantity_from;
-    }
-
-    var filter_quantity_to = $('#input-quantity-to').val();
-
-    if (filter_quantity_to) {
-        url += '&filter_quantity_to=' + filter_quantity_to;
-    }
-
-    var filter_status = $('#input-status').val();
-
-    if (filter_status !== '') {
-        url += '&filter_status=' + filter_status;
-    }
-
-    window.history.pushState({}, null, 'index.php?route=catalog/product&user_token={{ user_token }}' + url);
-
-    $('#product').load('index.php?route=catalog/product.list&user_token={{ user_token }}' + url);
+                $('#list').load($('#form-product').attr('data-oc-load'));
+            }
+        },
+        error: function(xhr, ajaxOptions, thrownError) {
+            console.log(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+        }
+    });
 });
 
 $('#input-name').autocomplete({
@@ -174,7 +149,7 @@ $('#input-name').autocomplete({
         });
     },
     'select': function(item) {
-        $('#input-name').val(item['label']);
+        $('#input-name').val(decodeHTMLEntities(item['label']));
     }
 });
 
@@ -194,7 +169,7 @@ $('#input-model').autocomplete({
         });
     },
     'select': function(item) {
-        $('#input-model').val(item['label']);
+        $('#input-model').val(decodeHTMLEntities(item['label']));
     }
 });
 
@@ -220,7 +195,7 @@ $('#input-category').autocomplete({
     },
     'select': function(item) {
         if (item['value']) {
-            $('#input-category').val(item['label']);
+            $('#input-category').val(decodeHTMLEntities(item['label']));
             $('#input-category-id').val(item['value']);
         } else {
             $('#input-category').val('');
@@ -251,7 +226,7 @@ $('#input-manufacturer').autocomplete({
     },
     'select': function(item) {
         if (item['value']) {
-            $('#input-manufacturer').val(item['label']);
+            $('#input-manufacturer').val(decodeHTMLEntities(item['label']));
             $('#input-manufacturer-id').val(item['value']);
         } else {
             $('#input-manufacturer').val('');

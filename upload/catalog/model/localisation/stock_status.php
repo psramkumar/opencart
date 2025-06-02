@@ -1,7 +1,9 @@
 <?php
 namespace Opencart\Catalog\Model\Localisation;
 /**
- * Class StockStatus
+ * Class Stock Status
+ *
+ * Can be called using $this->load->model('localisation/stock_status');
  *
  * @package Opencart\Catalog\Model\Localisation
  */
@@ -9,9 +11,17 @@ class StockStatus extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Stock Status
 	 *
-	 * @param int $stock_status_id
+	 * Get the record of the stock status record in the database.
 	 *
-	 * @return array<string, mixed>
+	 * @param int $stock_status_id primary key of the stock status record
+	 *
+	 * @return array<string, mixed> stock status record that has stock status ID
+	 *
+	 * @example
+	 *
+	 * $this->load->model('localisation/stock_status');
+	 *
+	 * $stock_status_info = $this->model_localisation_stock_status->getStockStatus($stock_status_id);
 	 */
 	public function getStockStatus(int $stock_status_id): array {
 		$query = $this->db->query("SELECT * FROM `" . DB_PREFIX . "stock_status` WHERE `stock_status_id` = '" . (int)$stock_status_id . "' AND `language_id` = '" . (int)$this->config->get('config_language_id') . "'");
@@ -22,9 +32,17 @@ class StockStatus extends \Opencart\System\Engine\Model {
 	/**
 	 * Get Stock Statuses
 	 *
-	 * @param array<string, mixed> $data
+	 * Get the record of the stock status records in the database.
 	 *
-	 * @return array<int, array<string, mixed>>
+	 * @param array<string, mixed> $data array of filters
+	 *
+	 * @return array<int, array<string, mixed>> stock status records
+	 *
+	 * @example
+	 *
+	 * $this->load->model('localisation/stock_status');
+	 *
+	 * $stock_statuses = $this->model_localisation_stock_status->getStockStatuses();
 	 */
 	public function getStockStatuses(array $data = []): array {
 		$sql = "SELECT * FROM `" . DB_PREFIX . "stock_status` WHERE `language_id` = '" . (int)$this->config->get('config_language_id') . "' ORDER BY `name`";
